@@ -92,6 +92,19 @@ impl App {
         }
     }
 
+    pub(super) fn save_pane_border_ids(&mut self, enabled: bool) {
+        if self.update_config_file("pane border ids", |content| {
+            crate::config::upsert_section_bool(
+                content,
+                "ui",
+                "show_pane_ids_on_pane_borders",
+                enabled,
+            )
+        }) {
+            self.apply_config_from_disk(false);
+        }
+    }
+
     pub(super) fn save_pane_history_persistence(&mut self, enabled: bool) {
         if self.update_config_file("pane screen history", |content| {
             crate::config::upsert_section_bool(content, "experimental", "pane_history", enabled)

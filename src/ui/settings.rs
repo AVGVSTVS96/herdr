@@ -139,15 +139,7 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
             );
         }
         SettingsSection::PaneLabels => {
-            render_settings_toggle(
-                frame,
-                content_area,
-                p,
-                "agent border labels",
-                "show detected agent names in split pane borders",
-                app.agent_border_labels_enabled(),
-                app.settings.list.selected,
-            );
+            render_settings_pane_labels(app, frame, content_area);
         }
         SettingsSection::Experiments => {
             render_settings_experiments(app, frame, content_area);
@@ -413,6 +405,58 @@ fn render_settings_toggle(
     );
 }
 
+fn render_settings_pane_labels(app: &AppState, frame: &mut Frame, area: Rect) {
+    let p = &app.palette;
+    let [title_area, desc_area, _, list_area] = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Min(1),
+    ])
+    .areas::<4>(area);
+
+    frame.render_widget(
+        Paragraph::new("pane labels")
+            .style(Style::default().fg(p.text).add_modifier(Modifier::BOLD)),
+        title_area,
+    );
+    super::widgets::render_modal_description(
+        frame,
+        desc_area,
+        "choose what appears in split pane borders",
+        Style::default().fg(p.overlay1),
+    );
+
+    let rows = [
+        (
+            "agent labels",
+            "show detected agent names on the left",
+            app.agent_border_labels_enabled(),
+        ),
+        (
+            "pane ids",
+            "show full pane ids like w1:p2 on the right",
+            app.pane_border_ids_enabled(),
+        ),
+    ];
+    for (idx, (label, description, enabled)) in rows.into_iter().enumerate() {
+        let marker = if enabled { "[✓]" } else { "[ ]" };
+        let style = if app.settings.list.selected == idx {
+            Style::default()
+                .bg(p.surface0)
+                .fg(p.text)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(p.subtext0)
+        };
+        let row = Rect::new(list_area.x, list_area.y + idx as u16, list_area.width, 1);
+        frame.render_widget(
+            Paragraph::new(format!(" {label:<13} {marker}  {description}")).style(style),
+            row,
+        );
+    }
+}
+
 fn render_settings_experiments(app: &AppState, frame: &mut Frame, area: Rect) {
     let p = &app.palette;
     let [desc_area, _, list_area] = Layout::vertical([
@@ -527,5 +571,33 @@ mod tests {
             .collect::<String>();
 
         assert!(rendered.contains("switch to ascii input source in prefix (macOS) [✓]"));
+    }
+
+    #[test]
+    fn pane_labels_render_two_independent_checkbox_rows() {
+        let mut app = AppState::test_new();
+        app.show_agent_labels_on_pane_borders = true;
+        app.show_pane_ids_on_pane_borders = false;
+        app.settings.section = SettingsSection::PaneLabels;
+        app.settings.list.selected = 1;
+        app.mode = Mode::Settings;
+
+        let mut terminal =
+            Terminal::new(TestBackend::new(80, 24)).expect("test terminal should initialize");
+        terminal
+            .draw(|frame| render_settings_overlay(&app, frame, Rect::new(0, 0, 80, 24)))
+            .expect("settings overlay should render");
+
+        let rendered = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<String>();
+
+        assert!(rendered.contains("agent labels  [✓]"));
+        assert!(rendered.contains("pane ids      [ ]"));
+        assert!(rendered.contains("show full pane ids like w1:p2 on the right"));
     }
 }

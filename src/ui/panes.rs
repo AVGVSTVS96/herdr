@@ -7,7 +7,6 @@ use ratatui::{
 };
 
 use super::scrollbar::{render_pane_scrollbar, should_show_scrollbar};
-#[cfg(test)]
 use super::text::display_width;
 use super::text::truncate_end;
 use super::widgets::panel_contrast_fg;
@@ -29,6 +28,38 @@ fn pane_border_title(label: &str, pane_width: u16, _focused: bool) -> Option<Str
     }
     let max_label_width = pane_width.saturating_sub(4) as usize;
     Some(format!(" {} ", truncate_end(label, max_label_width)))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PaneBorderTitles {
+    left: Option<String>,
+    right: Option<String>,
+}
+
+fn pane_border_titles(
+    label: Option<&str>,
+    pane_id: Option<&str>,
+    available_width: usize,
+) -> PaneBorderTitles {
+    let right = pane_id
+        .map(str::trim)
+        .filter(|pane_id| !pane_id.is_empty())
+        .map(|pane_id| format!(" {pane_id} "))
+        .filter(|pane_id| display_width(pane_id) <= available_width);
+    let left_available = match &right {
+        Some(pane_id) => available_width
+            .saturating_sub(display_width(pane_id))
+            .saturating_sub(1),
+        None => available_width,
+    };
+    let left = label
+        .map(str::trim)
+        .filter(|label| !label.is_empty() && left_available > 2)
+        .map(|label| truncate_end(label, left_available.saturating_sub(2)))
+        .filter(|label| !label.is_empty())
+        .map(|label| format!(" {label} "));
+
+    PaneBorderTitles { left, right }
 }
 
 fn stable_terminal_inner_rect(pane_inner: Rect) -> Rect {
@@ -614,47 +645,64 @@ fn render_pane_border_titles(
     let buf = frame.buffer_mut();
     let area = buf.area;
     for info in pane_infos {
-        if !info.borders.contains(Borders::TOP) || info.rect.width <= 4 {
+        if !info.borders.contains(Borders::TOP) || info.rect.width <= 2 {
             continue;
         }
-        let Some(title) = ws
+        let label = ws
             .pane_state(info.id)
             .and_then(|pane| app.terminals.get(&pane.attached_terminal_id))
-            .and_then(|terminal| terminal.border_label(app.show_agent_labels_on_pane_borders))
-            .and_then(|label| pane_border_title(&label, info.rect.width, info.is_focused))
-        else {
+            .and_then(|terminal| terminal.border_label(app.show_agent_labels_on_pane_borders));
+        let pane_id = app
+            .show_pane_ids_on_pane_borders
+            .then(|| {
+                ws.public_pane_number(info.id).map(|pane_number| {
+                    crate::workspace::public_pane_id_for_number(&ws.id, pane_number)
+                })
+            })
+            .flatten();
+        let titles = pane_border_titles(
+            label.as_deref(),
+            pane_id.as_deref(),
+            info.rect.width.saturating_sub(2) as usize,
+        );
+        if titles.left.is_none() && titles.right.is_none() {
             continue;
-        };
+        }
         let y = info.rect.y;
         if y < area.y || y >= area.y.saturating_add(area.height) {
             continue;
         }
-        let start_x = info.rect.x.saturating_add(1);
-        let end_x = info
-            .rect
-            .x
-            .saturating_add(info.rect.width)
-            .saturating_sub(1)
-            .min(area.x.saturating_add(area.width));
-        if start_x >= end_x {
-            continue;
-        }
-        let color = if info.is_focused {
+        let area_right = area.x.saturating_add(area.width);
+        let pane_right = info.rect.x.saturating_add(info.rect.width);
+        let left_color = if info.is_focused {
             app.palette.accent
         } else {
             app.palette.overlay0
         };
-        let mut style = Style::default().fg(color);
+        let mut left_style = Style::default().fg(left_color);
         if info.is_focused {
-            style = style.add_modifier(Modifier::BOLD);
+            left_style = left_style.add_modifier(Modifier::BOLD);
         }
-        buf.set_stringn(
-            start_x,
-            y,
-            title,
-            end_x.saturating_sub(start_x) as usize,
-            style,
-        );
+        if let Some(left) = titles.left {
+            let x = info.rect.x.saturating_add(1);
+            let width = display_width(&left);
+            if x >= area.x && x.saturating_add(width as u16) <= area_right {
+                buf.set_stringn(x, y, left, width, left_style);
+            }
+        }
+        if let Some(right) = titles.right {
+            let width = display_width(&right);
+            let x = pane_right.saturating_sub(1).saturating_sub(width as u16);
+            if x >= area.x && x.saturating_add(width as u16) <= area_right {
+                buf.set_stringn(
+                    x,
+                    y,
+                    right,
+                    width,
+                    Style::default().fg(app.palette.overlay0),
+                );
+            }
+        }
     }
 }
 
@@ -1005,6 +1053,67 @@ mod tests {
     }
 
     #[test]
+    fn pane_border_titles_reserve_the_full_id_before_the_left_label() {
+        assert_eq!(
+            pane_border_titles(Some("claude"), Some("w1:p2"), 16),
+            PaneBorderTitles {
+                left: Some(" claude ".to_string()),
+                right: Some(" w1:p2 ".to_string()),
+            }
+        );
+        assert_eq!(
+            pane_border_titles(Some("claude"), Some("w1:p2"), 15),
+            PaneBorderTitles {
+                left: Some(" clau… ".to_string()),
+                right: Some(" w1:p2 ".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn pane_border_titles_handle_wide_labels_without_colliding_with_the_id() {
+        let titles = pane_border_titles(Some("模块组织"), Some("w1:p2"), 15);
+
+        assert_eq!(titles.left.as_deref(), Some(" 模块… "));
+        assert_eq!(titles.right.as_deref(), Some(" w1:p2 "));
+        assert_eq!(
+            display_width(titles.left.as_deref().unwrap())
+                + 1
+                + display_width(titles.right.as_deref().unwrap()),
+            15
+        );
+    }
+
+    #[test]
+    fn pane_border_titles_drop_the_left_label_before_the_id() {
+        assert_eq!(
+            pane_border_titles(Some("claude"), Some("w1:p2"), 7),
+            PaneBorderTitles {
+                left: None,
+                right: Some(" w1:p2 ".to_string()),
+            }
+        );
+        assert_eq!(
+            pane_border_titles(None, Some("w1:p2"), 7),
+            PaneBorderTitles {
+                left: None,
+                right: Some(" w1:p2 ".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn pane_border_titles_hide_an_id_that_cannot_fit_in_full() {
+        assert_eq!(
+            pane_border_titles(None, Some("w1:p2"), 6),
+            PaneBorderTitles {
+                left: None,
+                right: None,
+            }
+        );
+    }
+
+    #[test]
     fn pane_border_renderer_places_adjacent_cjk_by_display_width() {
         let mut app = AppState::test_new();
         app.mode = Mode::Terminal;
@@ -1035,6 +1144,118 @@ mod tests {
         assert_eq!(buffer[(4, 0)].symbol(), "模");
         assert_eq!(buffer[(5, 0)].symbol(), " ");
         assert_eq!(buffer[(6, 0)].symbol(), "块");
+    }
+
+    #[test]
+    fn pane_border_renderer_places_manual_label_left_and_full_id_right() {
+        let mut app = AppState::test_new();
+        app.mode = Mode::Terminal;
+        app.show_pane_ids_on_pane_borders = true;
+        app.view.terminal_area = Rect::new(0, 0, 24, 3);
+        let ws = Workspace::test_new("test");
+        let pane_id = ws.tabs[0].root_pane;
+        app.view.pane_infos = vec![PaneInfo {
+            id: pane_id,
+            rect: Rect::new(0, 0, 24, 3),
+            inner_rect: Rect::default(),
+            scrollbar_rect: None,
+            borders: Borders::ALL,
+            is_focused: true,
+        }];
+
+        let terminal_id = ws.tabs[0].panes[&pane_id].attached_terminal_id.clone();
+        let mut terminal_state = TerminalState::new(terminal_id.clone(), "/tmp".into());
+        terminal_state.set_manual_label("manual".into());
+        app.terminals.insert(terminal_id, terminal_state);
+        let expected_id = crate::workspace::public_pane_id_for_number(
+            &ws.id,
+            ws.public_pane_number(pane_id).unwrap(),
+        );
+
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(24, 3)).unwrap();
+        terminal
+            .draw(|frame| render_view_pane_borders(&app, &ws, frame))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let row = (0..24).map(|x| buffer[(x, 0)].symbol()).collect::<String>();
+        assert!(row.starts_with("┌ manual "));
+        assert!(row.ends_with(&format!(" {expected_id} ┐")));
+        let id_x = 24 - 1 - (display_width(&expected_id) as u16 + 2) + 1;
+        assert_eq!(buffer[(id_x, 0)].style().fg, Some(app.palette.overlay0));
+        assert!(!buffer[(id_x, 0)]
+            .style()
+            .add_modifier
+            .contains(Modifier::BOLD));
+        assert_eq!(buffer[(2, 0)].style().fg, Some(app.palette.accent));
+        assert!(buffer[(2, 0)].style().add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn pane_border_renderer_shows_id_for_plain_shell_without_a_left_label() {
+        let mut app = AppState::test_new();
+        app.mode = Mode::Terminal;
+        app.show_pane_ids_on_pane_borders = true;
+        app.view.terminal_area = Rect::new(0, 0, 16, 3);
+        let ws = Workspace::test_new("test");
+        let pane_id = ws.tabs[0].root_pane;
+        app.view.pane_infos = vec![PaneInfo {
+            id: pane_id,
+            rect: Rect::new(0, 0, 16, 3),
+            inner_rect: Rect::default(),
+            scrollbar_rect: None,
+            borders: Borders::ALL,
+            is_focused: false,
+        }];
+        let expected_id = crate::workspace::public_pane_id_for_number(
+            &ws.id,
+            ws.public_pane_number(pane_id).unwrap(),
+        );
+
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(16, 3)).unwrap();
+        terminal
+            .draw(|frame| render_view_pane_borders(&app, &ws, frame))
+            .unwrap();
+
+        let row = (0..16)
+            .map(|x| terminal.backend().buffer()[(x, 0)].symbol())
+            .collect::<String>();
+        assert!(row.ends_with(&format!(" {expected_id} ┐")));
+    }
+
+    #[test]
+    fn disabled_pane_border_ids_preserve_existing_left_only_output() {
+        let mut app = AppState::test_new();
+        app.mode = Mode::Terminal;
+        app.show_pane_ids_on_pane_borders = false;
+        app.view.terminal_area = Rect::new(0, 0, 16, 3);
+        let ws = Workspace::test_new("test");
+        let pane_id = ws.tabs[0].root_pane;
+        app.view.pane_infos = vec![PaneInfo {
+            id: pane_id,
+            rect: Rect::new(0, 0, 16, 3),
+            inner_rect: Rect::default(),
+            scrollbar_rect: None,
+            borders: Borders::ALL,
+            is_focused: false,
+        }];
+        let terminal_id = ws.tabs[0].panes[&pane_id].attached_terminal_id.clone();
+        let mut terminal_state = TerminalState::new(terminal_id.clone(), "/tmp".into());
+        terminal_state.set_manual_label("shell".into());
+        app.terminals.insert(terminal_id, terminal_state);
+
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(16, 3)).unwrap();
+        terminal
+            .draw(|frame| render_view_pane_borders(&app, &ws, frame))
+            .unwrap();
+
+        let row = (0..16)
+            .map(|x| terminal.backend().buffer()[(x, 0)].symbol())
+            .collect::<String>();
+        assert_eq!(row, "┌ shell ───────┐");
     }
 
     #[test]
