@@ -1,0 +1,473 @@
+name: Sync patched fork
+
+on:
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Upstream source to follow
+        required: false
+        default: stable
+        type: choice
+        options:
+          - stable
+          - main
+      source_sha:
+        description: Optional exact upstream commit SHA
+        required: false
+        type: string
+      force_release:
+        description: Publish the current patched commit even when already synced
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  RUST_TOOLCHAIN_VERSION: 1.96.1
+  REQUESTED_TRACK: ${{ inputs.track || vars.UPSTREAM_TRACK || 'stable' }}
+  SOURCE_OVERRIDE: ${{ inputs.source_sha || '' }}
+  FORCE_RELEASE: ${{ inputs.force_release || false }}
+
+concurrency:
+  group: patched-fork-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      should_publish: ${{ steps.finalize.outputs.should_publish }}
+      candidate_sha: ${{ steps.finalize.outputs.candidate_sha }}
+      source_sha: ${{ steps.resolve.outputs.source_sha }}
+      source_tag: ${{ steps.resolve.outputs.source_tag }}
+      track: ${{ steps.resolve.outputs.track }}
+      channel: ${{ steps.finalize.outputs.channel }}
+      version: ${{ steps.finalize.outputs.version }}
+      protocol: ${{ steps.finalize.outputs.protocol }}
+      build_id: ${{ steps.finalize.outputs.build_id }}
+      built_at: ${{ steps.finalize.outputs.built_at }}
+      release_tag: ${{ steps.finalize.outputs.release_tag }}
+    steps:
+      - name: Checkout fork main
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve one upstream source commit
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/ogulcancelik/herdr.git
+          track="$REQUESTED_TRACK"
+          case "$track" in
+            stable|main) ;;
+            *) echo "unsupported track: $track" >&2; exit 1 ;;
+          esac
+
+          source_tag=""
+          if [ -n "$SOURCE_OVERRIDE" ]; then
+            git fetch --no-tags upstream master:refs/remotes/upstream/master
+            source_sha="$(git rev-parse "${SOURCE_OVERRIDE}^{commit}")"
+            git merge-base --is-ancestor "$source_sha" refs/remotes/upstream/master
+            source_kind="commit"
+          elif [ "$track" = "stable" ]; then
+            source_tag="$(gh api repos/ogulcancelik/herdr/releases/latest --jq .tag_name)"
+            git fetch --force upstream \
+              "refs/tags/${source_tag}:refs/tags/upstream-${source_tag}"
+            source_sha="$(git rev-parse "refs/tags/upstream-${source_tag}^{commit}")"
+            source_kind="release"
+          else
+            git fetch --no-tags upstream master:refs/remotes/upstream/master
+            source_sha="$(git rev-parse 'refs/remotes/upstream/master^{commit}')"
+            source_kind="main"
+          fi
+
+          current_main="$(git rev-parse HEAD)"
+          current_track="$(python3 -c 'import json; print(json.load(open("patches/pane-border-ids/meta.json"))["track"])')"
+          current_source="$(python3 -c 'import json; print(json.load(open("patches/pane-border-ids/meta.json"))["source_sha"])')"
+          if [ "$current_track" = "$track" ] && [ "$current_source" = "$source_sha" ]; then
+            needs_sync=false
+          else
+            needs_sync=true
+          fi
+
+          {
+            echo "track=$track"
+            echo "source_kind=$source_kind"
+            echo "source_sha=$source_sha"
+            echo "source_tag=$source_tag"
+            echo "current_main=$current_main"
+            echo "needs_sync=$needs_sync"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Restore control plane and try deterministic patches
+        id: apply
+        if: steps.resolve.outputs.needs_sync == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_main='${{ steps.resolve.outputs.current_main }}'
+          source_sha='${{ steps.resolve.outputs.source_sha }}'
+          git checkout --detach "$source_sha"
+          git checkout "$current_main" -- \
+            .github/workflows/sync-upstream.yml \
+            install-fork.sh \
+            patches \
+            scripts/fork_sync.py \
+            scripts/test_fork_sync.py \
+            fork-feed
+
+          python3 scripts/fork_sync.py validate
+          apply_failed=false
+          while IFS= read -r patch; do
+            if ! git apply --check --verbose "$patch"; then
+              apply_failed=true
+            fi
+          done < <(find patches -mindepth 2 -maxdepth 2 -name '*.patch' -print | sort)
+
+          if [ "$apply_failed" = "false" ]; then
+            while IFS= read -r patch; do
+              git apply --index "$patch"
+            done < <(find patches -mindepth 2 -maxdepth 2 -name '*.patch' -print | sort)
+          fi
+          echo "apply_failed=$apply_failed" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust
+        if: steps.resolve.outputs.needs_sync == 'true'
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: rustfmt,clippy
+
+      - name: Install Rust tools
+        if: steps.resolve.outputs.needs_sync == 'true'
+        uses: taiki-e/install-action@fd2f5e3d644b484055ebf4268f474c565f148f25 # v2.81.9
+        with:
+          tool: just,cargo-nextest
+
+      - name: Install Bun
+        if: steps.resolve.outputs.needs_sync == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install Zig
+        if: steps.resolve.outputs.needs_sync == 'true'
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.15.2
+
+      - name: Heal patches with Codex only after git apply fails
+        if: steps.apply.outputs.apply_failed == 'true'
+        uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          model: gpt-5.6-sol
+          effort: max
+          prompt: |
+            The deterministic patches failed against the checked-out upstream Herdr source.
+            Read every patches/*/PATCH.md and implement those intents completely.
+            Preserve upstream behavior outside those intents. Do not modify .github,
+            install-fork.sh, fork-feed, scripts/fork_sync.py, scripts/test_fork_sync.py,
+            or anything under patches/. Run appropriate tests and leave the working tree
+            with the healed source implementation.
+
+      - name: Restore trusted control files after healing
+        if: steps.apply.outputs.apply_failed == 'true'
+        shell: bash
+        run: |
+          git checkout '${{ steps.resolve.outputs.current_main }}' -- \
+            .github/workflows/sync-upstream.yml \
+            install-fork.sh \
+            patches \
+            scripts/fork_sync.py \
+            scripts/test_fork_sync.py \
+            fork-feed
+
+      - name: Verify rebuilt source
+        if: steps.resolve.outputs.needs_sync == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! just check; then
+            echo "just check failed once; retrying to rule out known timing-sensitive tests" >&2
+            just check
+          fi
+          python3 -m unittest scripts.test_fork_sync
+
+      - name: Refresh deterministic patch artifacts
+        if: steps.resolve.outputs.needs_sync == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          python3 scripts/fork_sync.py verify-changed-paths \
+            --source-sha '${{ steps.resolve.outputs.source_sha }}'
+          python3 scripts/fork_sync.py refresh \
+            --track '${{ steps.resolve.outputs.track }}' \
+            --source-kind '${{ steps.resolve.outputs.source_kind }}' \
+            --source-sha '${{ steps.resolve.outputs.source_sha }}' \
+            --source-tag '${{ steps.resolve.outputs.source_tag }}'
+          git add -A
+          git diff --cached --check -- . ':(exclude)patches/**/*.patch'
+
+      - name: Commit verified tree directly to main
+        id: commit
+        if: steps.resolve.outputs.needs_sync == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tree="$(git write-tree)"
+          message="chore: sync patched fork to ${{ steps.resolve.outputs.source_tag || steps.resolve.outputs.source_sha }}"
+          candidate_sha="$(printf '%s\n' "$message" | git commit-tree "$tree" \
+            -p '${{ steps.resolve.outputs.current_main }}' \
+            -p '${{ steps.resolve.outputs.source_sha }}')"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "${candidate_sha}:refs/heads/main"
+          echo "candidate_sha=$candidate_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Finalize release identity
+        id: finalize
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ '${{ steps.resolve.outputs.needs_sync }}' = "true" ]; then
+            candidate_sha='${{ steps.commit.outputs.candidate_sha }}'
+            should_publish=true
+          else
+            candidate_sha='${{ steps.resolve.outputs.current_main }}'
+            should_publish="$FORCE_RELEASE"
+          fi
+
+          version="$(git show "${candidate_sha}:Cargo.toml" |
+            sed -n 's/^version = "\(.*\)"/\1/p' | head -1)"
+          protocol="$(git show "${candidate_sha}:src/protocol/wire.rs" |
+            sed -n 's/pub const PROTOCOL_VERSION: u32 = \([0-9]*\);/\1/p')"
+          built_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          if [ '${{ steps.resolve.outputs.track }}' = "stable" ]; then
+            channel=stable
+            build_id=""
+            release_tag="patched-v${version}"
+          else
+            channel=preview
+            short_sha="$(printf '%s' '${{ steps.resolve.outputs.source_sha }}' | cut -c1-12)"
+            day="$(date -u +%Y-%m-%d)"
+            build_id="${day}-${short_sha}"
+            release_tag="patched-preview-${build_id}"
+          fi
+          {
+            echo "should_publish=$should_publish"
+            echo "candidate_sha=$candidate_sha"
+            echo "channel=$channel"
+            echo "version=$version"
+            echo "protocol=$protocol"
+            echo "build_id=$build_id"
+            echo "built_at=$built_at"
+            echo "release_tag=$release_tag"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: sync
+    if: needs.sync.outputs.should_publish == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            name: herdr-linux-x86_64
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            name: herdr-linux-aarch64
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            name: herdr-macos-x86_64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            name: herdr-macos-aarch64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      LIBGHOSTTY_VT_OPTIMIZE: ReleaseFast
+      LIBGHOSTTY_VT_SIMD: "true"
+      HERDR_BUILD_CHANNEL: ${{ needs.sync.outputs.channel }}
+      HERDR_BUILD_ID: ${{ needs.sync.outputs.build_id }}
+      HERDR_BUILD_COMMIT: ${{ needs.sync.outputs.source_sha }}
+      HERDR_STABLE_UPDATE_MANIFEST_URL: https://raw.githubusercontent.com/${{ github.repository }}/main/fork-feed/latest.json
+      HERDR_PREVIEW_UPDATE_MANIFEST_URL: https://raw.githubusercontent.com/${{ github.repository }}/main/fork-feed/preview.json
+    steps:
+      - name: Checkout verified candidate
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ needs.sync.outputs.candidate_sha }}
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          targets: ${{ matrix.target }}
+
+      - name: Install Zig
+        if: runner.os != 'macOS'
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.15.2
+
+      - name: Restore Homebrew Zig cache
+        if: runner.os == 'macOS'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/Library/Caches/Homebrew/downloads
+          key: homebrew-zig-0.15-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: |
+            homebrew-zig-0.15-${{ runner.os }}-
+
+      - name: Install patched Zig on macOS
+        if: runner.os == 'macOS'
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install zig@0.15
+          echo "$(brew --prefix zig@0.15)/bin" >> "$GITHUB_PATH"
+
+      - name: Install Linux build tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo find /etc/apt/sources.list.d -type f \
+            \( -iname '*microsoft*' -o -iname '*azure-cli*' \) -print -delete
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build musl-tools \
+            gcc-aarch64-linux-gnu crossbuild-essential-arm64
+
+      - name: Install macOS build tools
+        if: runner.os == 'macOS'
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake ninja
+
+      - name: Set Linux aarch64 linker
+        if: matrix.target == 'aarch64-unknown-linux-musl'
+        run: echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          key: patched-${{ matrix.target }}
+
+      - name: Build release binary
+        run: |
+          rm -rf .zig-cache vendor/libghostty-vt/.zig-cache vendor/libghostty-vt/zig-out
+          cargo build --release --locked --target '${{ matrix.target }}'
+          cp 'target/${{ matrix.target }}/release/herdr' '${{ matrix.name }}'
+
+      - name: Verify Linux binary is static
+        if: runner.os == 'Linux'
+        run: |
+          ldd '${{ matrix.name }}' > ldd.txt 2>&1 || true
+          grep -Eq "statically linked|not a dynamic executable" ldd.txt
+
+      - name: Upload release binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}
+
+  publish:
+    needs: [sync, build]
+    if: needs.sync.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout fork main
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download release binaries
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > RELEASE_NOTES.md <<'EOF'
+          Patched Herdr build maintained from upstream with:
+
+          - an independent Pane Labels setting for full public pane IDs on the right side of pane borders
+          - fork-owned stable and preview update feeds for native `herdr update --handoff`
+
+          Source: `${{ needs.sync.outputs.source_tag || needs.sync.outputs.source_sha }}`
+          EOF
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          args=(
+            '${{ needs.sync.outputs.release_tag }}'
+            artifacts/herdr-linux-x86_64
+            artifacts/herdr-linux-aarch64
+            artifacts/herdr-macos-x86_64
+            artifacts/herdr-macos-aarch64
+            --target '${{ needs.sync.outputs.candidate_sha }}'
+            --title 'Patched Herdr ${{ needs.sync.outputs.version }}'
+            --notes-file RELEASE_NOTES.md
+          )
+          if [ '${{ needs.sync.outputs.channel }}' = "preview" ]; then
+            args+=(--prerelease --latest=false)
+          else
+            args+=(--latest)
+          fi
+          gh release create "${args[@]}"
+
+      - name: Update fork manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ '${{ needs.sync.outputs.channel }}' = "stable" ]; then
+            output=fork-feed/latest.json
+          else
+            output=fork-feed/preview.json
+          fi
+          python3 scripts/fork_sync.py write-manifest \
+            --channel '${{ needs.sync.outputs.channel }}' \
+            --version '${{ needs.sync.outputs.version }}' \
+            --protocol '${{ needs.sync.outputs.protocol }}' \
+            --tag '${{ needs.sync.outputs.release_tag }}' \
+            --repository '${{ github.repository }}' \
+            --asset-dir artifacts \
+            --output "$output" \
+            --notes "$(cat RELEASE_NOTES.md)" \
+            --source-sha '${{ needs.sync.outputs.source_sha }}' \
+            --build-id '${{ needs.sync.outputs.build_id }}' \
+            --built-at '${{ needs.sync.outputs.built_at }}'
+
+      - name: Commit manifest directly to main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fork-feed
+          git commit -m "chore: update fork ${{ needs.sync.outputs.channel }} feed"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:main

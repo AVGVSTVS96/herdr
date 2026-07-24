@@ -1,0 +1,54 @@
+diff --git a/build.rs b/build.rs
+index 66ed262012bbc648b98adf9e5489a8c85dda6353..152074d1cb816d84e71abddf428394e21c65a807 100644
+--- a/build.rs
++++ b/build.rs
+@@ -44,6 +44,8 @@ fn main() {
+     println!("cargo:rerun-if-env-changed=HERDR_BUILD_CHANNEL");
+     println!("cargo:rerun-if-env-changed=HERDR_BUILD_ID");
+     println!("cargo:rerun-if-env-changed=HERDR_BUILD_COMMIT");
++    println!("cargo:rerun-if-env-changed=HERDR_STABLE_UPDATE_MANIFEST_URL");
++    println!("cargo:rerun-if-env-changed=HERDR_PREVIEW_UPDATE_MANIFEST_URL");
+     println!("cargo:rerun-if-env-changed=ZIG");
+ 
+     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
+diff --git a/src/update.rs b/src/update.rs
+index eac917bf6bc2e27f116dd7e674765c4f48b311d3..d80443d4a3aa0797e2c3e58d103f8142f39b42eb 100644
+--- a/src/update.rs
++++ b/src/update.rs
+@@ -23,8 +23,8 @@ use std::time::{Duration, Instant};
+ use interprocess::local_socket::traits::Stream as _;
+ use serde::{Deserialize, Deserializer};
+ 
+-const STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
+-const PREVIEW_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/preview.json";
++const DEFAULT_STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
++const DEFAULT_PREVIEW_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/preview.json";
+ const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/herdr.json";
+ const HERDR_UPDATE_COMMAND: &str = "herdr update";
+ const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade herdr";
+@@ -283,11 +283,23 @@ impl ReleaseInfo {
+ }
+ 
+ fn fetch_update_manifest() -> Result<UpdateManifest, String> {
+-    fetch_json_manifest(STABLE_UPDATE_MANIFEST_URL)
++    fetch_json_manifest(stable_update_manifest_url())
+ }
+ 
+ fn fetch_preview_manifest() -> Result<PreviewManifest, String> {
+-    fetch_json_manifest(PREVIEW_UPDATE_MANIFEST_URL)
++    fetch_json_manifest(preview_update_manifest_url())
++}
++
++fn stable_update_manifest_url() -> &'static str {
++    option_env!("HERDR_STABLE_UPDATE_MANIFEST_URL")
++        .filter(|url| !url.trim().is_empty())
++        .unwrap_or(DEFAULT_STABLE_UPDATE_MANIFEST_URL)
++}
++
++fn preview_update_manifest_url() -> &'static str {
++    option_env!("HERDR_PREVIEW_UPDATE_MANIFEST_URL")
++        .filter(|url| !url.trim().is_empty())
++        .unwrap_or(DEFAULT_PREVIEW_UPDATE_MANIFEST_URL)
+ }
+ 
+ fn fetch_json_manifest<T>(url: &str) -> Result<T, String>

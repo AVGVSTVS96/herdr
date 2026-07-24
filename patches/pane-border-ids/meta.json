@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "pane-border-ids",
+  "track": "stable",
+  "source_kind": "release",
+  "source_sha": "ef4c23f5775bb8cfec05f05d0844226ff959a07a",
+  "source_tag": "v0.7.5",
+  "patch_sha256": "485952e9b40b198f6d7df6414af605db73526d3183f72394d03b707022a75f61",
+  "paths": [
+    "docs/next/website/src/data/config-reference.json",
+    "src/app/config_io.rs",
+    "src/app/input/mod.rs",
+    "src/app/input/settings.rs",
+    "src/app/mod.rs",
+    "src/app/state.rs",
+    "src/config/model.rs",
+    "src/main.rs",
+    "src/ui/panes.rs",
+    "src/ui/settings.rs"
+  ]
+}
