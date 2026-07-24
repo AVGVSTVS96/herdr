@@ -1,0 +1,47 @@
+{
+  "version": "0.7.5",
+  "protocol": 17,
+  "notes": "Patched Herdr build maintained from upstream with:\n\n- an independent Pane Labels setting for full public pane IDs on the right side of pane borders\n- fork-owned stable and preview update feeds for native `herdr update --handoff`\n\nSource: `v0.7.5`",
+  "assets": {
+    "linux-x86_64": {
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.7.5/herdr-linux-x86_64",
+      "sha256": "a96710aba2ec0b3375406d5baccf1d40c97af685e2fa8dcd7824e74df3a7838f"
+    },
+    "linux-aarch64": {
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.7.5/herdr-linux-aarch64",
+      "sha256": "0b268894ab5a95b5c79ca7f060ae5fe6c6686bcbbd8f627436d5288e8dbd0cbc"
+    },
+    "macos-x86_64": {
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.7.5/herdr-macos-x86_64",
+      "sha256": "770cd6e87203d115585fbd16e3fd0948423f1f1ee4460bb3426b00c46db2b2c8"
+    },
+    "macos-aarch64": {
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.7.5/herdr-macos-aarch64",
+      "sha256": "68e2bb1f5b63a99ae7feba6476198688b9bbcd5855bebc2529543f4433a254cd"
+    }
+  },
+  "releases": {
+    "0.7.5": {
+      "notes": "Patched Herdr build maintained from upstream with:\n\n- an independent Pane Labels setting for full public pane IDs on the right side of pane borders\n- fork-owned stable and preview update feeds for native `herdr update --handoff`\n\nSource: `v0.7.5`",
+      "protocol": 17,
+      "assets": {
+        "linux-x86_64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.7.5/herdr-linux-x86_64",
+          "sha256": "a96710aba2ec0b3375406d5baccf1d40c97af685e2fa8dcd7824e74df3a7838f"
+        },
+        "linux-aarch64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.7.5/herdr-linux-aarch64",
+          "sha256": "0b268894ab5a95b5c79ca7f060ae5fe6c6686bcbbd8f627436d5288e8dbd0cbc"
+        },
+        "macos-x86_64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.7.5/herdr-macos-x86_64",
+          "sha256": "770cd6e87203d115585fbd16e3fd0948423f1f1ee4460bb3426b00c46db2b2c8"
+        },
+        "macos-aarch64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.7.5/herdr-macos-aarch64",
+          "sha256": "68e2bb1f5b63a99ae7feba6476198688b9bbcd5855bebc2529543f4433a254cd"
+        }
+      }
+    }
+  }
+}
