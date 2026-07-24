@@ -1,8 +1,10 @@
 ---
+format: patch-md/v0.1
 id: pane-border-ids
 summary: Show full public pane IDs on the right side of pane borders through a native Pane Labels setting.
 baseline: ef4c23f5775bb8cfec05f05d0844226ff959a07a
-lastUpdated: 2026-07-23
+patch_file: pane-border-ids.patch
+patch_sha256: 485952e9b40b198f6d7df6414af605db73526d3183f72394d03b707022a75f61
 ---
 
 ## Intent
@@ -23,7 +25,7 @@ Settings > Pane Labels exposes two checkbox rows:
 Up/Down and `j`/`k` select a row. Enter, Space, and a left click toggle
 only the selected row and save immediately.
 
-## Rendering invariants
+## Invariants
 
 1. Use the exact full ID produced by
    `public_pane_id_for_number(&ws.id, pane_number)`. Never reconstruct or
@@ -52,7 +54,7 @@ panes, complete IDs, and disabled behavior.
 
 Run `just check`.
 
-## Removal condition
+## Removal
 
 Remove this patch only when upstream Herdr provides an equivalent
 independent native setting with the same full-ID, persistence, Settings,

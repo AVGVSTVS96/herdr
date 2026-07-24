@@ -80,23 +80,19 @@ jobs:
             git fetch --no-tags upstream master:refs/remotes/upstream/master
             source_sha="$(git rev-parse "${SOURCE_OVERRIDE}^{commit}")"
             git merge-base --is-ancestor "$source_sha" refs/remotes/upstream/master
-            source_kind="commit"
           elif [ "$track" = "stable" ]; then
             source_tag="$(gh api repos/ogulcancelik/herdr/releases/latest --jq .tag_name)"
             git fetch --force upstream \
               "refs/tags/${source_tag}:refs/tags/upstream-${source_tag}"
             source_sha="$(git rev-parse "refs/tags/upstream-${source_tag}^{commit}")"
-            source_kind="release"
           else
             git fetch --no-tags upstream master:refs/remotes/upstream/master
             source_sha="$(git rev-parse 'refs/remotes/upstream/master^{commit}')"
-            source_kind="main"
           fi
 
           current_main="$(git rev-parse HEAD)"
-          current_track="$(python3 -c 'import json; print(json.load(open("patches/pane-border-ids/meta.json"))["track"])')"
-          current_source="$(python3 -c 'import json; print(json.load(open("patches/pane-border-ids/meta.json"))["source_sha"])')"
-          if [ "$current_track" = "$track" ] && [ "$current_source" = "$source_sha" ]; then
+          current_source="$(python3 scripts/fork_sync.py baseline)"
+          if [ "$current_source" = "$source_sha" ]; then
             needs_sync=false
           else
             needs_sync=true
@@ -104,7 +100,6 @@ jobs:
 
           {
             echo "track=$track"
-            echo "source_kind=$source_kind"
             echo "source_sha=$source_sha"
             echo "source_tag=$source_tag"
             echo "current_main=$current_main"
@@ -134,12 +129,12 @@ jobs:
             if ! git apply --check --verbose "$patch"; then
               apply_failed=true
             fi
-          done < <(find patches -mindepth 2 -maxdepth 2 -name '*.patch' -print | sort)
+          done < <(python3 scripts/fork_sync.py list-patches)
 
           if [ "$apply_failed" = "false" ]; then
             while IFS= read -r patch; do
               git apply --index "$patch"
-            done < <(find patches -mindepth 2 -maxdepth 2 -name '*.patch' -print | sort)
+            done < <(python3 scripts/fork_sync.py list-patches)
           fi
           echo "apply_failed=$apply_failed" >> "$GITHUB_OUTPUT"
 
@@ -216,10 +211,7 @@ jobs:
           python3 scripts/fork_sync.py verify-changed-paths \
             --source-sha '${{ steps.resolve.outputs.source_sha }}'
           python3 scripts/fork_sync.py refresh \
-            --track '${{ steps.resolve.outputs.track }}' \
-            --source-kind '${{ steps.resolve.outputs.source_kind }}' \
-            --source-sha '${{ steps.resolve.outputs.source_sha }}' \
-            --source-tag '${{ steps.resolve.outputs.source_tag }}'
+            --source-sha '${{ steps.resolve.outputs.source_sha }}'
           git add -A
           git diff --cached --check -- . ':(exclude)patches/**/*.patch'
 

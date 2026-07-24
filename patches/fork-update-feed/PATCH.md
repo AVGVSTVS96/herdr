@@ -1,8 +1,10 @@
 ---
+format: patch-md/v0.1
 id: fork-update-feed
 summary: Compile published fork binaries against fork-owned stable and preview update manifests.
 baseline: ef4c23f5775bb8cfec05f05d0844226ff959a07a
-lastUpdated: 2026-07-23
+patch_file: fork-update-feed.patch
+patch_sha256: 2468129365d8c6efd65085032a189d6f543ced9f7ad56e6e182abd4c1b32ee18
 ---
 
 ## Intent
@@ -27,7 +29,7 @@ Register both variables with Cargo's build-script rerun tracking.
 
 Run `just check`. Release builds must set both URLs explicitly.
 
-## Removal condition
+## Removal
 
 Remove this patch only if upstream Herdr gains a supported persistent
 custom update-feed mechanism that provides the same stable and preview

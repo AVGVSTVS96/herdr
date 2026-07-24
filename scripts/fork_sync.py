@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import hashlib
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,74 +22,190 @@ CONTROL_PATHS = {
     "scripts/test_fork_sync.py",
 }
 CONTROL_PREFIXES = ("patches/", "fork-feed/")
+PATCH_FORMAT = "patch-md/v0.1"
 
 
-def patch_dirs() -> list[Path]:
-    return sorted(path.parent for path in PATCHES_DIR.glob("*/meta.json"))
+class PatchSpec(NamedTuple):
+    directory: Path
+    patch_id: str
+    baseline: str
+    patch_path: Path
+    patch_sha256: str
+    paths: tuple[str, ...]
 
 
-def load_meta(directory: Path) -> dict:
-    return json.loads((directory / "meta.json").read_text())
+def patch_docs() -> list[Path]:
+    return sorted(PATCHES_DIR.glob("*/PATCH.md"))
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def validate() -> list[dict]:
-    directories = patch_dirs()
-    if not directories:
-        raise SystemExit("no patch metadata found")
+def parse_frontmatter(path: Path) -> dict[str, str]:
+    lines = path.read_text().splitlines()
+    if not lines or lines[0] != "---":
+        raise SystemExit(f"missing PATCH.md frontmatter: {path}")
+    try:
+        end = lines.index("---", 1)
+    except ValueError:
+        raise SystemExit(f"unterminated PATCH.md frontmatter: {path}") from None
 
-    metas: list[dict] = []
-    claimed_paths: dict[str, str] = {}
-    expected_source: tuple[str, str, str, str] | None = None
-    for directory in directories:
-        meta = load_meta(directory)
-        patch_id = meta.get("id")
-        if meta.get("schema_version") != 1 or patch_id != directory.name:
-            raise SystemExit(f"invalid metadata identity in {directory}")
-        if meta.get("track") not in {"stable", "main"}:
-            raise SystemExit(f"invalid track in {directory}")
-        source_sha = meta.get("source_sha", "")
-        if not re.fullmatch(r"[0-9a-f]{40}", source_sha):
-            raise SystemExit(f"invalid source_sha in {directory}")
-        source = (
-            meta["track"],
-            meta.get("source_kind", ""),
-            source_sha,
-            meta.get("source_tag", ""),
+    values: dict[str, str] = {}
+    for line in lines[1:end]:
+        if not line.strip():
+            continue
+        key, separator, value = line.partition(":")
+        if not separator or not re.fullmatch(r"[a-z][a-z0-9_]*", key):
+            raise SystemExit(f"invalid PATCH.md frontmatter line in {path}: {line!r}")
+        if key in values:
+            raise SystemExit(f"duplicate PATCH.md frontmatter key in {path}: {key}")
+        values[key] = value.strip()
+    return values
+
+
+def numstat_paths(path: Path, *, reverse: bool = False) -> list[str]:
+    command = ["git", "apply"]
+    if reverse:
+        command.append("--reverse")
+    command.extend(("--numstat", "-z", str(path)))
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        capture_output=True,
+    )
+    if result.returncode:
+        detail = result.stderr.decode(errors="replace").strip()
+        raise SystemExit(f"invalid patch {path}: {detail}")
+    fields = result.stdout.split(b"\0")
+    paths: list[str] = []
+    index = 0
+    while index < len(fields) and fields[index]:
+        record = fields[index]
+        parts = record.split(b"\t", 2)
+        if len(parts) != 3:
+            raise SystemExit(f"cannot read paths from patch: {path}")
+        if parts[2]:
+            raw_paths = (parts[2],)
+            index += 1
+        else:
+            if index + 2 >= len(fields):
+                raise SystemExit(f"cannot read rename paths from patch: {path}")
+            raw_paths = (fields[index + 1], fields[index + 2])
+            index += 3
+        for raw_path in raw_paths:
+            decoded = os.fsdecode(raw_path)
+            candidate = Path(decoded)
+            if not decoded or candidate.is_absolute() or ".." in candidate.parts:
+                raise SystemExit(f"unsafe path in {path}: {decoded!r}")
+            paths.append(decoded)
+    return paths
+
+
+def patch_paths(path: Path) -> tuple[str, ...]:
+    paths = numstat_paths(path)
+    paths.extend(numstat_paths(path, reverse=True))
+    return tuple(dict.fromkeys(paths))
+
+
+def validate_body(path: Path) -> None:
+    headings = re.findall(r"(?m)^## ([^\n]+)$", path.read_text())
+    for required in ("Intent", "Verification", "Removal"):
+        if headings.count(required) != 1:
+            raise SystemExit(f"PATCH.md must contain one ## {required} section: {path}")
+    if "Patch" in headings:
+        raise SystemExit(f"external PATCH.md must not contain an inline patch: {path}")
+
+
+def load_patch(path: Path) -> PatchSpec:
+    directory = path.parent
+    frontmatter = parse_frontmatter(path)
+    required = {
+        "format",
+        "id",
+        "summary",
+        "baseline",
+        "patch_file",
+        "patch_sha256",
+    }
+    missing = sorted(required - frontmatter.keys())
+    if missing:
+        raise SystemExit(f"missing PATCH.md fields in {path}: {', '.join(missing)}")
+    if frontmatter["format"] != PATCH_FORMAT:
+        raise SystemExit(f"unsupported PATCH.md format in {path}")
+    patch_id = frontmatter["id"]
+    if (
+        not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", patch_id)
+        or patch_id != directory.name
+    ):
+        raise SystemExit(f"PATCH.md id does not match directory: {path}")
+    if not frontmatter["summary"]:
+        raise SystemExit(f"PATCH.md summary must not be empty: {path}")
+    baseline = frontmatter["baseline"]
+    if not re.fullmatch(r"[0-9a-f]{40}", baseline):
+        raise SystemExit(f"invalid PATCH.md baseline in {path}")
+
+    patch_file = frontmatter["patch_file"]
+    if Path(patch_file).name != patch_file or not patch_file.endswith(".patch"):
+        raise SystemExit(f"invalid PATCH.md patch_file in {path}")
+    patch_path = directory / patch_file
+    if (
+        patch_path.is_symlink()
+        or not patch_path.is_file()
+        or not patch_path.read_bytes()
+    ):
+        raise SystemExit(f"missing or empty patch: {patch_path}")
+    unexpected = sorted(
+        member.name
+        for member in directory.iterdir()
+        if member not in {path, patch_path}
+    )
+    if unexpected:
+        raise SystemExit(
+            f"unexpected files in patch package {directory}: {', '.join(unexpected)}"
         )
-        if expected_source is None:
-            expected_source = source
-        elif source != expected_source:
-            raise SystemExit("all patches must describe the same upstream source")
+    expected_hash = frontmatter["patch_sha256"]
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
+        raise SystemExit(f"invalid PATCH.md patch_sha256 in {path}")
+    if sha256(patch_path) != expected_hash:
+        raise SystemExit(f"patch checksum mismatch: {patch_path}")
+    validate_body(path)
+    paths = patch_paths(patch_path)
+    if not paths:
+        raise SystemExit(f"patch does not change any paths: {patch_path}")
+    return PatchSpec(
+        directory=directory,
+        patch_id=patch_id,
+        baseline=baseline,
+        patch_path=patch_path,
+        patch_sha256=expected_hash,
+        paths=paths,
+    )
 
-        patch_path = directory / f"{patch_id}.patch"
-        intent_path = directory / "PATCH.md"
-        if not patch_path.is_file() or not patch_path.read_bytes():
-            raise SystemExit(f"missing or empty patch: {patch_path}")
-        if not intent_path.is_file():
-            raise SystemExit(f"missing intent: {intent_path}")
-        if sha256(patch_path) != meta.get("patch_sha256"):
-            raise SystemExit(f"patch checksum mismatch: {patch_path}")
-        intent = intent_path.read_text()
-        if f"baseline: {source_sha}" not in intent:
-            raise SystemExit(f"PATCH.md baseline does not match meta.json: {directory}")
 
-        paths = meta.get("paths")
-        if not isinstance(paths, list) or not paths:
-            raise SystemExit(f"patch paths must be a non-empty list: {directory}")
-        for path in paths:
-            if not isinstance(path, str) or not path or path.startswith("/"):
-                raise SystemExit(f"invalid patch path in {directory}: {path!r}")
-            if path in claimed_paths:
+def validate() -> list[PatchSpec]:
+    documents = patch_docs()
+    if not documents:
+        raise SystemExit("no PATCH.md files found")
+
+    patches: list[PatchSpec] = []
+    claimed_paths: dict[str, str] = {}
+    expected_baseline: str | None = None
+    for document in documents:
+        patch = load_patch(document)
+        if expected_baseline is None:
+            expected_baseline = patch.baseline
+        elif patch.baseline != expected_baseline:
+            raise SystemExit("all patches must use the same baseline")
+        for changed_path in patch.paths:
+            if changed_path in claimed_paths:
                 raise SystemExit(
-                    f"{path} is claimed by both {claimed_paths[path]} and {patch_id}"
+                    f"{changed_path} is changed by both "
+                    f"{claimed_paths[changed_path]} and {patch.patch_id}"
                 )
-            claimed_paths[path] = patch_id
-        metas.append(meta)
-    return metas
+            claimed_paths[changed_path] = patch.patch_id
+        patches.append(patch)
+    return patches
 
 
 def git(*args: str, text: bool = True) -> subprocess.CompletedProcess:
@@ -101,58 +218,50 @@ def git(*args: str, text: bool = True) -> subprocess.CompletedProcess:
     )
 
 
-def update_frontmatter(path: Path, source_sha: str) -> None:
+def update_frontmatter(path: Path, source_sha: str, patch_hash: str) -> None:
     content = path.read_text()
     content, baseline_count = re.subn(
         r"(?m)^baseline: .+$", f"baseline: {source_sha}", content, count=1
     )
-    content, date_count = re.subn(
-        r"(?m)^lastUpdated: .+$",
-        f"lastUpdated: {dt.datetime.now(dt.timezone.utc).date().isoformat()}",
+    content, hash_count = re.subn(
+        r"(?m)^patch_sha256: .+$",
+        f"patch_sha256: {patch_hash}",
         content,
         count=1,
     )
-    if baseline_count != 1 or date_count != 1:
+    if baseline_count != 1 or hash_count != 1:
         raise SystemExit(f"invalid PATCH.md frontmatter: {path}")
     path.write_text(content)
 
 
 def refresh(args: argparse.Namespace) -> None:
-    metas = validate()
-    for old_meta, directory in zip(metas, patch_dirs(), strict=True):
-        paths = old_meta["paths"]
+    patches = validate()
+    for patch in patches:
         result = git(
             "diff",
             "--binary",
             "--full-index",
             args.source_sha,
             "--",
-            *paths,
+            *patch.paths,
             text=False,
         )
-        patch_path = directory / f"{old_meta['id']}.patch"
-        patch_path.write_bytes(result.stdout)
+        patch.patch_path.write_bytes(result.stdout)
         if not result.stdout:
             raise SystemExit(
-                f"{old_meta['id']} became empty; review its removal condition"
+                f"{patch.patch_id} became empty; review its removal condition"
             )
-
-        meta = {
-            **old_meta,
-            "track": args.track,
-            "source_kind": args.source_kind,
-            "source_sha": args.source_sha,
-            "source_tag": args.source_tag,
-            "patch_sha256": sha256(patch_path),
-        }
-        (directory / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
-        update_frontmatter(directory / "PATCH.md", args.source_sha)
+        update_frontmatter(
+            patch.directory / "PATCH.md",
+            args.source_sha,
+            sha256(patch.patch_path),
+        )
     validate()
 
 
 def verify_changed_paths(args: argparse.Namespace) -> None:
-    metas = validate()
-    claimed = {path for meta in metas for path in meta["paths"]}
+    patches = validate()
+    claimed = {path for patch in patches for path in patch.paths}
     changed = git("diff", "--name-only", args.source_sha).stdout.splitlines()
     unexpected = [
         path
@@ -237,12 +346,11 @@ def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser()
     commands = root.add_subparsers(dest="command", required=True)
     commands.add_parser("validate")
+    commands.add_parser("baseline")
+    commands.add_parser("list-patches")
 
     refresh_parser = commands.add_parser("refresh")
-    refresh_parser.add_argument("--track", choices=["stable", "main"], required=True)
-    refresh_parser.add_argument("--source-kind", required=True)
     refresh_parser.add_argument("--source-sha", required=True)
-    refresh_parser.add_argument("--source-tag", default="")
 
     changed_parser = commands.add_parser("verify-changed-paths")
     changed_parser.add_argument("--source-sha", required=True)
@@ -266,6 +374,11 @@ def main() -> None:
     args = parser().parse_args()
     if args.command == "validate":
         validate()
+    elif args.command == "baseline":
+        print(validate()[0].baseline)
+    elif args.command == "list-patches":
+        for patch in validate():
+            print(patch.patch_path.relative_to(ROOT))
     elif args.command == "refresh":
         refresh(args)
     elif args.command == "verify-changed-paths":

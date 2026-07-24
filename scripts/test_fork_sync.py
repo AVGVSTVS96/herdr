@@ -14,6 +14,52 @@ fork_sync = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(fork_sync)
 
 
+def write_patch_package(
+    patches: Path,
+    patch_id: str,
+    changed_path: str,
+    *,
+    baseline: str = "a" * 40,
+) -> Path:
+    directory = patches / patch_id
+    directory.mkdir()
+    patch = directory / f"{patch_id}.patch"
+    patch.write_text(
+        f"""diff --git a/{changed_path} b/{changed_path}
+new file mode 100644
+index 0000000..7898192
+--- /dev/null
++++ b/{changed_path}
+@@ -0,0 +1 @@
++content
+"""
+    )
+    (directory / "PATCH.md").write_text(
+        f"""---
+format: patch-md/v0.1
+id: {patch_id}
+summary: Test patch.
+baseline: {baseline}
+patch_file: {patch.name}
+patch_sha256: {fork_sync.sha256(patch)}
+---
+
+## Intent
+
+Test.
+
+## Verification
+
+Test.
+
+## Removal
+
+Test.
+"""
+    )
+    return patch
+
+
 class ForkSyncTests(unittest.TestCase):
     def test_stable_manifest_contains_checksummed_assets(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -94,31 +140,88 @@ class ForkSyncTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             patches = Path(tmp)
             for patch_id in ("one", "two"):
-                directory = patches / patch_id
-                directory.mkdir()
-                patch = directory / f"{patch_id}.patch"
-                patch.write_text("diff")
-                (directory / "PATCH.md").write_text(
-                    "---\nbaseline: " + "a" * 40 + "\nlastUpdated: 2026-07-23\n---\n"
-                )
-                (directory / "meta.json").write_text(
-                    json.dumps(
-                        {
-                            "schema_version": 1,
-                            "id": patch_id,
-                            "track": "stable",
-                            "source_kind": "release",
-                            "source_sha": "a" * 40,
-                            "source_tag": "v1.0.0",
-                            "patch_sha256": fork_sync.sha256(patch),
-                            "paths": ["same.rs"],
-                        }
-                    )
-                )
+                write_patch_package(patches, patch_id, "same.rs")
 
             with mock.patch.object(fork_sync, "PATCHES_DIR", patches):
-                with self.assertRaisesRegex(SystemExit, "claimed by both"):
+                with self.assertRaisesRegex(SystemExit, "changed by both"):
                     fork_sync.validate()
+
+    def test_validate_reads_external_patch_from_patch_md(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            patch_path = write_patch_package(patches, "one", "src/one.rs")
+
+            with mock.patch.object(fork_sync, "PATCHES_DIR", patches):
+                specs = fork_sync.validate()
+
+            self.assertEqual(len(specs), 1)
+            self.assertEqual(specs[0].patch_id, "one")
+            self.assertEqual(specs[0].patch_path, patch_path)
+            self.assertEqual(specs[0].paths, ("src/one.rs",))
+
+    def test_patch_paths_includes_both_sides_of_rename(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patch = Path(tmp) / "rename.patch"
+            patch.write_text(
+                """diff --git a/old.txt b/new.txt
+similarity index 100%
+rename from old.txt
+rename to new.txt
+"""
+            )
+
+            self.assertEqual(
+                fork_sync.patch_paths(patch),
+                ("new.txt", "old.txt"),
+            )
+
+    def test_validate_rejects_patch_checksum_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            patch_path = write_patch_package(patches, "one", "src/one.rs")
+            patch_path.write_text(patch_path.read_text() + "\n")
+
+            with mock.patch.object(fork_sync, "PATCHES_DIR", patches):
+                with self.assertRaisesRegex(SystemExit, "checksum mismatch"):
+                    fork_sync.validate()
+
+    def test_validate_rejects_extra_package_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            write_patch_package(patches, "one", "src/one.rs")
+            (patches / "one" / "meta.json").write_text("{}\n")
+
+            with mock.patch.object(fork_sync, "PATCHES_DIR", patches):
+                with self.assertRaisesRegex(SystemExit, "unexpected files"):
+                    fork_sync.validate()
+
+    def test_validate_rejects_different_baselines(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            write_patch_package(patches, "one", "src/one.rs")
+            write_patch_package(
+                patches,
+                "two",
+                "src/two.rs",
+                baseline="b" * 40,
+            )
+
+            with mock.patch.object(fork_sync, "PATCHES_DIR", patches):
+                with self.assertRaisesRegex(SystemExit, "same baseline"):
+                    fork_sync.validate()
+
+    def test_update_frontmatter_updates_only_derived_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            write_patch_package(patches, "one", "src/one.rs")
+            document = patches / "one" / "PATCH.md"
+
+            fork_sync.update_frontmatter(document, "b" * 40, "c" * 64)
+
+            content = document.read_text()
+            self.assertIn(f"baseline: {'b' * 40}", content)
+            self.assertIn(f"patch_sha256: {'c' * 64}", content)
+            self.assertIn("summary: Test patch.", content)
 
 
 if __name__ == "__main__":
