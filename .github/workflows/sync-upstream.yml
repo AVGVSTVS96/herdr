@@ -293,7 +293,7 @@ jobs:
             os: ubuntu-latest
             name: herdr-linux-x86_64
           - target: aarch64-unknown-linux-musl
-            os: ubuntu-latest
+            os: ubuntu-24.04-arm
             name: herdr-linux-aarch64
           - target: x86_64-apple-darwin
             os: macos-latest
@@ -351,16 +351,11 @@ jobs:
           sudo find /etc/apt/sources.list.d -type f \
             \( -iname '*microsoft*' -o -iname '*azure-cli*' \) -print -delete
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build musl-tools \
-            gcc-aarch64-linux-gnu crossbuild-essential-arm64
+          sudo apt-get install -y cmake ninja-build musl-tools
 
       - name: Install macOS build tools
         if: runner.os == 'macOS'
         run: HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake ninja
-
-      - name: Set Linux aarch64 linker
-        if: matrix.target == 'aarch64-unknown-linux-musl'
-        run: echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
 
       - name: Restore Rust cache
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2

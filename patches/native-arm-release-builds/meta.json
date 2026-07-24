@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "native-arm-release-builds",
+  "track": "stable",
+  "source_kind": "release",
+  "source_sha": "ef4c23f5775bb8cfec05f05d0844226ff959a07a",
+  "source_tag": "v0.7.5",
+  "patch_sha256": "baa6ee756e0e5a64f4836de12c8196846165532366cd91050a48487fdd78c66b",
+  "paths": [
+    ".github/workflows/preview.yml",
+    ".github/workflows/release.yml"
+  ]
+}
