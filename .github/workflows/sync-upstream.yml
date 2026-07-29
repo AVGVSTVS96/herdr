@@ -163,21 +163,80 @@ jobs:
         with:
           version: 0.15.2
 
+      - name: Install Node for Codex
+        if: steps.apply.outputs.apply_failed == 'true'
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "24"
+
+      - name: Install Codex CLI
+        if: steps.apply.outputs.apply_failed == 'true'
+        shell: bash
+        run: npm install --global @openai/codex@0.146.0
+
+      - name: Restore Codex subscription auth
+        if: steps.apply.outputs.apply_failed == 'true'
+        shell: bash
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+        run: |
+          set -euo pipefail
+          codex_home="$RUNNER_TEMP/codex-home"
+          install -d -m 700 "$codex_home"
+          printf '%s' "$CODEX_AUTH_JSON" > "$codex_home/auth.json"
+          chmod 600 "$codex_home/auth.json"
+          jq -e '
+            .auth_mode == "chatgpt"
+            and (.tokens.refresh_token | type == "string" and length > 0)
+          ' "$codex_home/auth.json" >/dev/null
+          while IFS= read -r token; do
+            echo "::add-mask::$token"
+          done < <(
+            jq -r '
+              .tokens
+              | [.access_token, .id_token, .refresh_token]
+              | .[] // empty
+            ' "$codex_home/auth.json"
+          )
+          echo "CODEX_HOME=$codex_home" >> "$GITHUB_ENV"
+
       - name: Heal patches with Codex only after git apply fails
         if: steps.apply.outputs.apply_failed == 'true'
-        uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          model: gpt-5.6-sol
-          effort: high
-          prompt: |
+        shell: bash
+        env:
+          CODEX_PROMPT: |
             The deterministic patches failed against the checked-out upstream Herdr source.
             Read every patches/*/PATCH.md and implement those intents completely.
             Preserve upstream behavior outside those intents. Do not modify .github,
             install-fork.sh, fork-feed, scripts/fork_sync.py, scripts/test_fork_sync.py,
             or anything under patches/. Run appropriate tests and leave the working tree
             with the healed source implementation.
+        run: |
+          codex exec \
+            --ephemeral \
+            --color never \
+            --model gpt-5.6-sol \
+            --sandbox workspace-write \
+            -c 'approval_policy="never"' \
+            -c 'model_reasoning_effort="high"' \
+            -c 'sandbox_workspace_write.network_access=false' \
+            "$CODEX_PROMPT" \
+            </dev/null
+
+      - name: Persist refreshed Codex subscription auth
+        if: ${{ always() && steps.apply.outputs.apply_failed == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.CODEX_SECRET_WRITER_TOKEN }}
+        run: |
+          set -euo pipefail
+          jq -e '
+            .auth_mode == "chatgpt"
+            and (.tokens.refresh_token | type == "string" and length > 0)
+          ' "$CODEX_HOME/auth.json" >/dev/null
+          gh secret set CODEX_AUTH_JSON \
+            --repo "$GITHUB_REPOSITORY" \
+            < "$CODEX_HOME/auth.json"
 
       - name: Restore trusted control files after healing
         if: steps.apply.outputs.apply_failed == 'true'
