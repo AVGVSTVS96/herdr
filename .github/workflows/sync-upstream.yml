@@ -2,7 +2,8 @@ name: Sync patched fork
 
 on:
   schedule:
-    - cron: "17 8 * * *"
+    - cron: "17 8 * * *" # stable lane: patch newly tagged upstream releases
+    - cron: "47 8 * * *" # nightly lane: patch the upstream master head
   workflow_dispatch:
     inputs:
       track:
@@ -29,7 +30,8 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   RUST_TOOLCHAIN_VERSION: 1.96.1
-  REQUESTED_TRACK: ${{ inputs.track || vars.UPSTREAM_TRACK || 'stable' }}
+  REQUESTED_TRACK: ${{ inputs.track || '' }}
+  EVENT_SCHEDULE: ${{ github.event.schedule || '' }}
   SOURCE_OVERRIDE: ${{ inputs.source_sha || '' }}
   FORCE_RELEASE: ${{ inputs.force_release || false }}
 
@@ -53,6 +55,7 @@ jobs:
       build_id: ${{ steps.finalize.outputs.build_id }}
       built_at: ${{ steps.finalize.outputs.built_at }}
       release_tag: ${{ steps.finalize.outputs.release_tag }}
+      healed: ${{ steps.finalize.outputs.healed }}
     steps:
       - name: Checkout fork main
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
@@ -70,6 +73,12 @@ jobs:
           set -euo pipefail
           git remote add upstream https://github.com/ogulcancelik/herdr.git
           track="$REQUESTED_TRACK"
+          if [ -z "$track" ]; then
+            case "$EVENT_SCHEDULE" in
+              "47 8 * * *") track=main ;;
+              *) track=stable ;;
+            esac
+          fi
           case "$track" in
             stable|main) ;;
             *) echo "unsupported track: $track" >&2; exit 1 ;;
@@ -91,8 +100,16 @@ jobs:
           fi
 
           current_main="$(git rev-parse HEAD)"
-          current_source="$(python3 scripts/fork_sync.py baseline)"
-          if [ "$current_source" = "$source_sha" ]; then
+          if [ "$track" = "stable" ] && [ -z "$SOURCE_OVERRIDE" ]; then
+            # The nightly lane moves the patch baseline along upstream master,
+            # so the stable lane keys off its published release instead.
+            if gh release view "patched-${source_tag}" \
+              --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              needs_sync=false
+            else
+              needs_sync=true
+            fi
+          elif [ "$(python3 scripts/fork_sync.py baseline)" = "$source_sha" ]; then
             needs_sync=false
           else
             needs_sync=true
@@ -163,79 +180,47 @@ jobs:
         with:
           version: 0.15.2
 
-      - name: Install Node for Codex
-        if: steps.apply.outputs.apply_failed == 'true'
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: "24"
-
-      - name: Install Codex CLI
-        if: steps.apply.outputs.apply_failed == 'true'
-        shell: bash
-        run: npm install --global @openai/codex@0.146.0
-
-      - name: Restore Codex subscription auth
-        if: steps.apply.outputs.apply_failed == 'true'
-        shell: bash
-        env:
-          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
-        run: |
-          set -euo pipefail
-          codex_home="$RUNNER_TEMP/codex-home"
-          install -d -m 700 "$codex_home"
-          printf '%s' "$CODEX_AUTH_JSON" > "$codex_home/auth.json"
-          chmod 600 "$codex_home/auth.json"
-          jq -e '
-            .auth_mode == "chatgpt"
-            and (.tokens.refresh_token | type == "string" and length > 0)
-          ' "$codex_home/auth.json" >/dev/null
-          while IFS= read -r token; do
-            echo "::add-mask::$token"
-          done < <(
-            jq -r '
-              .tokens
-              | [.access_token, .id_token, .refresh_token]
-              | .[] // empty
-            ' "$codex_home/auth.json"
-          )
-          echo "CODEX_HOME=$codex_home" >> "$GITHUB_ENV"
-
       - name: Heal patches with Codex only after git apply fails
         if: steps.apply.outputs.apply_failed == 'true'
         shell: bash
         env:
-          CODEX_PROMPT: |
-            The deterministic patches failed against the checked-out upstream Herdr source.
-            Read every patches/*/PATCH.md and implement those intents completely.
-            Preserve upstream behavior outside those intents. Do not modify .github,
-            install-fork.sh, fork-feed, scripts/fork_sync.py, scripts/test_fork_sync.py,
-            or anything under patches/. Run appropriate tests and leave the working tree
-            with the healed source implementation.
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          CODEX_HOME: ${{ runner.temp }}/codex-home
         run: |
-          codex exec \
-            --ephemeral \
-            --color never \
+          npm install --global @openai/codex@0.146.0
+          cargo fetch --locked
+          install -d -m 700 "$CODEX_HOME"
+          printf '%s' "$CODEX_AUTH_JSON" > "$CODEX_HOME/auth.json"
+          chmod 600 "$CODEX_HOME/auth.json"
+          jq -r '.tokens | .[] // empty' "$CODEX_HOME/auth.json" |
+            while IFS= read -r token; do echo "::add-mask::$token"; done
+          env -u CODEX_AUTH_JSON codex exec \
             --model gpt-5.6-sol \
             --sandbox workspace-write \
             -c 'approval_policy="never"' \
             -c 'model_reasoning_effort="high"' \
-            -c 'sandbox_workspace_write.network_access=false' \
-            "$CODEX_PROMPT" \
-            </dev/null
+            - <<'PROMPT'
+          The deterministic patches failed against the checked-out upstream Herdr source.
+          Read every patches/*/PATCH.md and implement those intents completely.
+          Preserve upstream behavior outside those intents. Do not modify .github,
+          install-fork.sh, fork-feed, scripts/fork_sync.py, scripts/test_fork_sync.py,
+          or anything under patches/. Your sandbox has no network access, but Rust
+          dependencies are pre-fetched so offline cargo builds and tests work. Run
+          appropriate tests and leave the working tree with the healed source
+          implementation.
+          PROMPT
 
       - name: Persist refreshed Codex subscription auth
         if: ${{ always() && steps.apply.outputs.apply_failed == 'true' }}
-        shell: bash
         env:
+          CODEX_HOME: ${{ runner.temp }}/codex-home
           GH_TOKEN: ${{ secrets.CODEX_SECRET_WRITER_TOKEN }}
         run: |
-          set -euo pipefail
           jq -e '
             .auth_mode == "chatgpt"
             and (.tokens.refresh_token | type == "string" and length > 0)
           ' "$CODEX_HOME/auth.json" >/dev/null
-          gh secret set CODEX_AUTH_JSON \
-            --repo "$GITHUB_REPOSITORY" \
+          gh secret set CODEX_AUTH_JSON --repo "$GITHUB_REPOSITORY" \
             < "$CODEX_HOME/auth.json"
 
       - name: Restore trusted control files after healing
@@ -286,6 +271,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           tree="$(git write-tree)"
           message="chore: sync patched fork to ${{ steps.resolve.outputs.source_tag || steps.resolve.outputs.source_sha }}"
+          if [ '${{ steps.apply.outputs.apply_failed }}' = "true" ]; then
+            message="${message}"$'\n\n'"patches healed by codex after deterministic apply failed"
+          fi
           candidate_sha="$(printf '%s\n' "$message" | git commit-tree "$tree" \
             -p '${{ steps.resolve.outputs.current_main }}' \
             -p '${{ steps.resolve.outputs.source_sha }}')"
@@ -322,9 +310,11 @@ jobs:
             build_id="${day}-${short_sha}"
             release_tag="patched-preview-${build_id}"
           fi
+          healed='${{ steps.apply.outputs.apply_failed }}'
           {
             echo "should_publish=$should_publish"
             echo "candidate_sha=$candidate_sha"
+            echo "healed=${healed:-false}"
             echo "channel=$channel"
             echo "version=$version"
             echo "protocol=$protocol"
@@ -466,6 +456,10 @@ jobs:
 
           Source: `${{ needs.sync.outputs.source_tag || needs.sync.outputs.source_sha }}`
           EOF
+          if [ '${{ needs.sync.outputs.healed }}' = "true" ]; then
+            printf '\nPatches were healed by Codex after deterministic apply failed.\n' \
+              >> RELEASE_NOTES.md
+          fi
 
       - name: Publish GitHub release
         shell: bash
@@ -524,3 +518,17 @@ jobs:
           git commit -m "chore: update fork ${{ needs.sync.outputs.channel }} feed"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
             HEAD:main
+
+      - name: Prune preview releases older than 14 days
+        if: needs.sync.outputs.channel == 'preview'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cutoff="$(date -u -d '14 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+          gh release list --limit 200 --json tagName,isPrerelease,publishedAt \
+            --jq ".[] | select(.isPrerelease and .publishedAt < \"$cutoff\") | .tagName" |
+            while IFS= read -r tag; do
+              gh release delete "$tag" --yes --cleanup-tag
+            done
