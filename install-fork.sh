@@ -143,6 +143,7 @@ main() {
 
     log "ready: $("$installed" --version)"
     printf '\n  Future stable updates:\n\n    herdr update --handoff\n\n'
+    printf '  Opt into patched nightlies:\n\n    herdr channel set preview && herdr update --handoff\n\n'
 }
 
 if [ "${HERDR_INSTALLER_SOURCE_ONLY:-0}" != "1" ]; then
