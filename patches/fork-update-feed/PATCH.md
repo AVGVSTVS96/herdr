@@ -2,9 +2,9 @@
 format: patch-md/v0.1
 id: fork-update-feed
 summary: Compile published fork binaries against fork-owned stable and preview update manifests.
-baseline: ef4c23f5775bb8cfec05f05d0844226ff959a07a
+baseline: 73d92004f50d3f5fafe64e0f9b7fddbcf4d99965
 patch_file: fork-update-feed.patch
-patch_sha256: 2468129365d8c6efd65085032a189d6f543ced9f7ad56e6e182abd4c1b32ee18
+patch_sha256: a1796ccaa4b7836748064d7d4ddaa93951d9289d68da80a774f8639c2ca0bb47
 ---
 
 ## Intent
@@ -22,6 +22,11 @@ and `https://herdr.dev/preview.json`. Published fork binaries set both
 variables to manifests owned by this fork, so native background checks,
 `herdr channel set`, and `herdr update --handoff` never replace the fork
 with an upstream binary.
+
+Every code path that fetches an update manifest must resolve its URL
+through this single override, not a private constant. Today that covers
+the updater and remote-session binary seeding; extend the same routing
+to any manifest fetch upstream adds later.
 
 Register both variables with Cargo's build-script rerun tracking.
 

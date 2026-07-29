@@ -11,8 +11,39 @@ index 66ed262012bbc648b98adf9e5489a8c85dda6353..152074d1cb816d84e71abddf428394e2
      println!("cargo:rerun-if-env-changed=ZIG");
  
      let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
+diff --git a/src/remote/unix.rs b/src/remote/unix.rs
+index 6fe927c1cc0f99c4f2fbfd99bf9b758f4acfd15e..2fbe856f61ad630522bbde193b0d769824212bc5 100644
+--- a/src/remote/unix.rs
++++ b/src/remote/unix.rs
+@@ -20,8 +20,6 @@ const BRIDGE_SOCKET_PERMISSION_MODE: u32 = 0o600;
+ const REMOTE_SERVER_SHUTDOWN_CONFIRM_TIMEOUT: Duration = Duration::from_secs(5);
+ const REMOTE_SERVER_SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
+ const CURRENT_PROTOCOL: u32 = crate::protocol::PROTOCOL_VERSION;
+-const STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
+-const PREVIEW_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/preview.json";
+ const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
+ const SSH_CONTROL_SOCKET_NAME: &str = "ctl";
+ pub(crate) const REATTACH_COMMAND_ENV_VAR: &str = "HERDR_REATTACH_COMMAND";
+@@ -1530,7 +1528,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+         let build_id = crate::build_info::build_id().ok_or_else(|| {
+             io::Error::other("preview client has no build id; set HERDR_REMOTE_BINARY or install Herdr on the remote manually")
+         })?;
+-        let manifest_bytes = fetch_remote_manifest(PREVIEW_UPDATE_MANIFEST_URL)?;
++        let manifest_bytes = fetch_remote_manifest(crate::update::preview_update_manifest_url())?;
+         let manifest: RemotePreviewManifest =
+             serde_json::from_slice(&manifest_bytes).map_err(|err| {
+                 io::Error::other(format!("failed to parse preview manifest JSON: {err}"))
+@@ -1549,7 +1547,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+     }
+ 
+     let current_version = current_version();
+-    let manifest_bytes = fetch_remote_manifest(STABLE_UPDATE_MANIFEST_URL)?;
++    let manifest_bytes = fetch_remote_manifest(crate::update::stable_update_manifest_url())?;
+     let manifest: RemoteUpdateManifest = serde_json::from_slice(&manifest_bytes)
+         .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
+     let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index eac917bf6bc2e27f116dd7e674765c4f48b311d3..d80443d4a3aa0797e2c3e58d103f8142f39b42eb 100644
+index 3455841d2a90da519499f0c41daf5557c899cb95..e32070b7cd28256041da1c4e1d449a78dc8805f8 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -23,8 +23,8 @@ use std::time::{Duration, Instant};
@@ -39,13 +70,13 @@ index eac917bf6bc2e27f116dd7e674765c4f48b311d3..d80443d4a3aa0797e2c3e58d103f8142
 +    fetch_json_manifest(preview_update_manifest_url())
 +}
 +
-+fn stable_update_manifest_url() -> &'static str {
++pub(crate) fn stable_update_manifest_url() -> &'static str {
 +    option_env!("HERDR_STABLE_UPDATE_MANIFEST_URL")
 +        .filter(|url| !url.trim().is_empty())
 +        .unwrap_or(DEFAULT_STABLE_UPDATE_MANIFEST_URL)
 +}
 +
-+fn preview_update_manifest_url() -> &'static str {
++pub(crate) fn preview_update_manifest_url() -> &'static str {
 +    option_env!("HERDR_PREVIEW_UPDATE_MANIFEST_URL")
 +        .filter(|url| !url.trim().is_empty())
 +        .unwrap_or(DEFAULT_PREVIEW_UPDATE_MANIFEST_URL)
