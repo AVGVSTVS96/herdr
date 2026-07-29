@@ -251,6 +251,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf .zig-cache vendor/libghostty-vt/.zig-cache vendor/libghostty-vt/zig-out
           git add -A
           python3 scripts/fork_sync.py verify-changed-paths \
             --source-sha '${{ steps.resolve.outputs.source_sha }}'
