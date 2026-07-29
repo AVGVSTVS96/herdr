@@ -189,6 +189,9 @@ jobs:
         run: |
           npm install --global @openai/codex@0.146.0
           cargo fetch --locked
+          # Ubuntu 24.04 AppArmor blocks unprivileged user namespaces, which
+          # kills codex's bubblewrap sandbox before any command can run.
+          sudo sysctl -q -w kernel.apparmor_restrict_unprivileged_userns=0
           install -d -m 700 "$CODEX_HOME"
           printf '%s' "$CODEX_AUTH_JSON" > "$CODEX_HOME/auth.json"
           chmod 600 "$CODEX_HOME/auth.json"
@@ -209,6 +212,14 @@ jobs:
           appropriate tests and leave the working tree with the healed source
           implementation.
           PROMPT
+          # codex exec exits 0 even when its sandbox is broken, so require
+          # actual source changes before trusting the heal.
+          if git diff --quiet && git diff --cached --quiet -- \
+            ':(exclude).github' ':(exclude)install-fork.sh' \
+            ':(exclude)patches' ':(exclude)fork-feed' ':(exclude)scripts'; then
+            echo "codex exited cleanly but changed no source files" >&2
+            exit 1
+          fi
 
       - name: Persist refreshed Codex subscription auth
         if: ${{ always() && steps.apply.outputs.apply_failed == 'true' }}
