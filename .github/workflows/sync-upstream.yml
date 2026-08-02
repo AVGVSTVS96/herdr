@@ -221,7 +221,8 @@ jobs:
           # actual source changes before trusting the heal.
           if git diff --quiet && git diff --cached --quiet -- \
             ':(exclude).github' ':(exclude)install-fork.sh' \
-            ':(exclude)patches' ':(exclude)fork-feed' ':(exclude)scripts'; then
+            ':(exclude)patches' ':(exclude)fork-feed' \
+            ':(exclude)scripts/fork_sync.py' ':(exclude)scripts/test_fork_sync.py'; then
             echo "codex exited cleanly but changed no source files" >&2
             exit 1
           fi
@@ -263,7 +264,8 @@ jobs:
             --source-sha '${{ steps.resolve.outputs.source_sha }}'; then
             git diff --binary '${{ steps.resolve.outputs.source_sha }}' -- \
               ':(exclude).github' ':(exclude)install-fork.sh' \
-              ':(exclude)patches' ':(exclude)fork-feed' ':(exclude)scripts' \
+              ':(exclude)patches' ':(exclude)fork-feed' \
+              ':(exclude)scripts/fork_sync.py' ':(exclude)scripts/test_fork_sync.py' \
               > "$RUNNER_TEMP/healed.diff"
             echo "heal exceeds claimed patch paths; widen the patch from the healed-diff artifact" >&2
             exit 1
