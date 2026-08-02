@@ -121,8 +121,7 @@ main() {
 
     installed="${INSTALL_DIR}/${BIN}"
     log "installed ${installed}"
-    "$installed" channel set stable >/dev/null ||
-        err "installed the binary, but could not select the fork stable channel"
+    channel="$("$installed" channel show 2>/dev/null || echo stable)"
 
     if [ -n "$running_sessions" ]; then
         for session in $running_sessions; do
@@ -136,14 +135,24 @@ main() {
         done
     fi
 
+    if [ "$channel" = "preview" ]; then
+        log "keeping your preview channel; updating to the patched nightly"
+        "$installed" update --handoff ||
+            warn "nightly update failed; retry with: herdr update --handoff"
+    fi
+
     case ":${PATH}:" in
         *":${INSTALL_DIR}:"*) ;;
         *) warn "${INSTALL_DIR} is not on PATH; add: export PATH=\"${INSTALL_DIR}:\$PATH\"" ;;
     esac
 
     log "ready: $("$installed" --version)"
-    printf '\n  Future stable updates:\n\n    herdr update --handoff\n\n'
-    printf '  Opt into patched nightlies:\n\n    herdr channel set preview && herdr update --handoff\n\n'
+    printf '\n  Future %s updates:\n\n    herdr update --handoff\n\n' "$channel"
+    if [ "$channel" = "preview" ]; then
+        printf '  Back to patched stable:\n\n    herdr channel set stable && herdr update --handoff\n\n'
+    else
+        printf '  Opt into patched nightlies:\n\n    herdr channel set preview && herdr update --handoff\n\n'
+    fi
 }
 
 if [ "${HERDR_INSTALLER_SOURCE_ONLY:-0}" != "1" ]; then
