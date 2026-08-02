@@ -46,7 +46,7 @@ jobs:
     outputs:
       should_publish: ${{ steps.finalize.outputs.should_publish }}
       candidate_sha: ${{ steps.finalize.outputs.candidate_sha }}
-      source_sha: ${{ steps.resolve.outputs.source_sha }}
+      source_sha: ${{ steps.finalize.outputs.source_sha }}
       source_tag: ${{ steps.resolve.outputs.source_tag }}
       track: ${{ steps.resolve.outputs.track }}
       channel: ${{ steps.finalize.outputs.channel }}
@@ -101,15 +101,17 @@ jobs:
 
           current_main="$(git rev-parse HEAD)"
           if [ "$track" = "stable" ] && [ -z "$SOURCE_OVERRIDE" ]; then
-            # The nightly lane moves the patch baseline along upstream master,
-            # so the stable lane keys off its published release instead.
+            # Stable syncs older tags that the nightly lane has already merged
+            # past, so it keys off its published release instead of ancestry.
             if gh release view "patched-${source_tag}" \
               --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
               needs_sync=false
             else
               needs_sync=true
             fi
-          elif [ "$(python3 scripts/fork_sync.py baseline)" = "$source_sha" ]; then
+          elif git merge-base --is-ancestor "$source_sha" HEAD; then
+            # Sync commits merge the source as a second parent, so ancestry is
+            # the tree truth; patch metadata alone can't mark a source synced.
             needs_sync=false
           else
             needs_sync=true
@@ -132,8 +134,11 @@ jobs:
           current_main='${{ steps.resolve.outputs.current_main }}'
           source_sha='${{ steps.resolve.outputs.source_sha }}'
           git checkout --detach "$source_sha"
+          # .github is fork-owned: upstream workflow files can never be pushed
+          # with the default Actions token, and their crons must not run here.
+          git rm -r -q --ignore-unmatch .github
           git checkout "$current_main" -- \
-            .github/workflows/sync-upstream.yml \
+            .github \
             install-fork.sh \
             patches \
             scripts/fork_sync.py \
@@ -238,13 +243,39 @@ jobs:
         if: steps.apply.outputs.apply_failed == 'true'
         shell: bash
         run: |
+          rm -rf .github
           git checkout '${{ steps.resolve.outputs.current_main }}' -- \
-            .github/workflows/sync-upstream.yml \
+            .github \
             install-fork.sh \
             patches \
             scripts/fork_sync.py \
             scripts/test_fork_sync.py \
             fork-feed
+
+      - name: Reject heals outside patch scope
+        if: steps.apply.outputs.apply_failed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .zig-cache vendor/libghostty-vt/.zig-cache vendor/libghostty-vt/zig-out
+          git add -A
+          if ! python3 scripts/fork_sync.py verify-changed-paths \
+            --source-sha '${{ steps.resolve.outputs.source_sha }}'; then
+            git diff --binary '${{ steps.resolve.outputs.source_sha }}' -- \
+              ':(exclude).github' ':(exclude)install-fork.sh' \
+              ':(exclude)patches' ':(exclude)fork-feed' ':(exclude)scripts' \
+              > "$RUNNER_TEMP/healed.diff"
+            echo "heal exceeds claimed patch paths; widen the patch from the healed-diff artifact" >&2
+            exit 1
+          fi
+
+      - name: Upload healed diff for maintainer adoption
+        if: failure() && steps.apply.outputs.apply_failed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: healed-diff
+          path: ${{ runner.temp }}/healed.diff
+          if-no-files-found: ignore
 
       - name: Verify rebuilt source
         if: steps.resolve.outputs.needs_sync == 'true'
@@ -300,10 +331,19 @@ jobs:
           set -euo pipefail
           if [ '${{ steps.resolve.outputs.needs_sync }}' = "true" ]; then
             candidate_sha='${{ steps.commit.outputs.candidate_sha }}'
+            source_sha='${{ steps.resolve.outputs.source_sha }}'
             should_publish=true
           else
             candidate_sha='${{ steps.resolve.outputs.current_main }}'
             should_publish="$FORCE_RELEASE"
+            # Label a forced publish with the source its tree actually contains
+            # (the second parent of the last sync merge), not today's tip.
+            last_sync="$(git rev-list --min-parents=2 --first-parent -n 1 "$candidate_sha")"
+            if [ -n "$last_sync" ]; then
+              source_sha="$(git rev-parse "${last_sync}^2")"
+            else
+              source_sha='${{ steps.resolve.outputs.source_sha }}'
+            fi
           fi
 
           version="$(git show "${candidate_sha}:Cargo.toml" |
@@ -317,7 +357,7 @@ jobs:
             release_tag="patched-v${version}"
           else
             channel=preview
-            short_sha="$(printf '%s' '${{ steps.resolve.outputs.source_sha }}' | cut -c1-12)"
+            short_sha="$(printf '%s' "$source_sha" | cut -c1-12)"
             day="$(date -u +%Y-%m-%d)"
             build_id="${day}-${short_sha}"
             release_tag="patched-preview-${build_id}"
@@ -326,6 +366,7 @@ jobs:
           {
             echo "should_publish=$should_publish"
             echo "candidate_sha=$candidate_sha"
+            echo "source_sha=$source_sha"
             echo "healed=${healed:-false}"
             echo "channel=$channel"
             echo "version=$version"

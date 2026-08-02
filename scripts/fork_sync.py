@@ -9,6 +9,7 @@ import json
 import os
 import re
 import subprocess
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import NamedTuple
 
@@ -16,13 +17,13 @@ from typing import NamedTuple
 ROOT = Path(__file__).resolve().parents[1]
 PATCHES_DIR = ROOT / "patches"
 CONTROL_PATHS = {
-    ".github/workflows/sync-upstream.yml",
     "install-fork.sh",
     "scripts/fork_sync.py",
     "scripts/test_fork_sync.py",
 }
-CONTROL_PREFIXES = ("patches/", "fork-feed/")
+CONTROL_PREFIXES = (".github/", "patches/", "fork-feed/")
 PATCH_FORMAT = "patch-md/v0.1"
+PREVIEW_BUILD_RETENTION_DAYS = 14
 
 
 class PatchSpec(NamedTuple):
@@ -277,6 +278,15 @@ def verify_changed_paths(args: argparse.Namespace) -> None:
         )
 
 
+def parse_built_at(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 def asset_metadata(asset_dir: Path, tag: str, repository: str) -> dict:
     mapping = {
         "linux-x86_64": "herdr-linux-x86_64",
@@ -318,7 +328,18 @@ def write_manifest(args: argparse.Namespace) -> None:
             "releases": releases,
         }
     else:
-        builds = previous.get("builds", {})
+        # Preview releases are pruned after the retention window, so drop
+        # manifest entries whose assets no longer exist.
+        cutoff = parse_built_at(args.built_at)
+        if cutoff is None:
+            raise SystemExit(f"invalid --built-at: {args.built_at!r}")
+        cutoff -= timedelta(days=PREVIEW_BUILD_RETENTION_DAYS)
+        builds = {
+            build_id: build
+            for build_id, build in previous.get("builds", {}).items()
+            if (built_at := parse_built_at(build.get("built_at"))) is not None
+            and built_at >= cutoff
+        }
         build = {
             "base_version": args.version,
             "commit": args.source_sha,

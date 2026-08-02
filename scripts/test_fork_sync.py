@@ -100,7 +100,7 @@ class ForkSyncTests(unittest.TestCase):
             self.assertEqual(len(asset["sha256"]), 64)
             self.assertIn("0.7.5", manifest["releases"])
 
-    def test_preview_manifest_preserves_previous_builds(self):
+    def test_preview_manifest_retains_only_unexpired_builds(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             assets = root / "assets"
@@ -113,7 +113,23 @@ class ForkSyncTests(unittest.TestCase):
             ):
                 (assets / name).write_bytes(name.encode())
             output = root / "preview.json"
-            output.write_text(json.dumps({"builds": {"old": {"commit": "old"}}}))
+            output.write_text(
+                json.dumps(
+                    {
+                        "builds": {
+                            "recent": {
+                                "commit": "recent",
+                                "built_at": "2026-07-20T00:00:00Z",
+                            },
+                            "expired": {
+                                "commit": "expired",
+                                "built_at": "2026-07-01T00:00:00Z",
+                            },
+                            "undated": {"commit": "undated"},
+                        }
+                    }
+                )
+            )
             args = SimpleNamespace(
                 channel="preview",
                 version="0.7.6",
@@ -131,7 +147,9 @@ class ForkSyncTests(unittest.TestCase):
             fork_sync.write_manifest(args)
 
             manifest = json.loads(output.read_text())
-            self.assertIn("old", manifest["builds"])
+            self.assertIn("recent", manifest["builds"])
+            self.assertNotIn("expired", manifest["builds"])
+            self.assertNotIn("undated", manifest["builds"])
             self.assertEqual(
                 manifest["builds"]["2026-07-23-abcdef"]["commit"], "b" * 40
             )
