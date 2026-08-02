@@ -106,15 +106,6 @@ main() {
     fi
 
     mkdir -p "$INSTALL_DIR"
-    # A session that refuses live-handoff (e.g. over the 64-pane limit) keeps
-    # its old server, and a newer client cannot attach across a protocol bump.
-    # Keep the old binary until every session migrates so none becomes
-    # unreachable.
-    backup=""
-    if [ -n "$running_sessions" ] && [ "$old_bin" = "${INSTALL_DIR}/${BIN}" ]; then
-        backup="${INSTALL_DIR}/${BIN}-prev"
-        cp -p "$old_bin" "$backup"
-    fi
     tmp="$(mktemp "${INSTALL_DIR}/.herdr-install.XXXXXX")"
     trap 'rm -f "$tmp"' EXIT HUP INT TERM
 
@@ -132,7 +123,6 @@ main() {
     log "installed ${installed}"
     channel="$("$installed" channel show 2>/dev/null || echo stable)"
 
-    handoff_failed=""
     if [ -n "$running_sessions" ]; then
         for session in $running_sessions; do
             log "live-handing off session ${session}"
@@ -140,17 +130,9 @@ main() {
                 --import-exe "$installed" \
                 --expected-protocol "$protocol" \
                 --expected-version "$version"; then
-                handoff_failed=1
-                warn "session ${session} kept its old server; restart it when convenient to move it to the patched build"
+                warn "session ${session} kept its old server with your panes; stop it when ready so its next start uses the patched build"
             fi
         done
-    fi
-    if [ -n "$backup" ]; then
-        if [ -n "$handoff_failed" ]; then
-            warn "kept the previous binary at ${backup}; attach to unmigrated sessions with: ${BIN}-prev"
-        else
-            rm -f "$backup"
-        fi
     fi
 
     if [ "$channel" = "preview" ]; then
