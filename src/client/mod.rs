@@ -1225,11 +1225,14 @@ fn run_client_with_mode(
 
     let should_quit = Arc::new(AtomicBool::new(false));
 
-    // Install Ctrl+C handler.
+    // ctrlc's "termination" feature also catches SIGTERM/SIGHUP so direct
+    // termination signals still run the quit path and TerminalGuard::Drop.
     let quit_flag = should_quit.clone();
-    let _ = ctrlc::set_handler(move || {
+    if let Err(err) = ctrlc::set_handler(move || {
         quit_flag.store(true, Ordering::Release);
-    });
+    }) {
+        warn!(%err, "failed to install termination handler; terminal restore relies on TerminalGuard::Drop and the panic hook");
+    }
 
     let result = rt.block_on(async {
         run_client_loop(
@@ -1838,7 +1841,7 @@ fn should_bridge_clipboard_image_paste(
         events.as_slice(),
         [crate::raw_input::RawInputEvent::Key(key)]
             if key.kind == crossterm::event::KeyEventKind::Press
-                && crate::config::terminal_key_matches_combo(*key, remote_image_paste_key)
+                && crate::config::terminal_key_matches_combo(key, remote_image_paste_key)
     )
 }
 

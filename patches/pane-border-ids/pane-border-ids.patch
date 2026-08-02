@@ -1,8 +1,8 @@
 diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
-index 4ad61f01b59bdf8a420137f3204d5362477f3574..fadd44461f8f97fa86b50dcc7cfc1e275b7be14f 100644
+index 5c9911b9d67c22fa1544ea8faf0af2a65c4e89d9..deeb67fdd91506494a538266b935ac2ca7ee5757 100644
 --- a/docs/next/website/src/data/config-reference.json
 +++ b/docs/next/website/src/data/config-reference.json
-@@ -664,6 +664,12 @@
+@@ -670,6 +670,12 @@
            "default": "false",
            "description": "Show agent labels in split pane borders when no manual pane label is set."
          },
@@ -16,7 +16,7 @@ index 4ad61f01b59bdf8a420137f3204d5362477f3574..fadd44461f8f97fa86b50dcc7cfc1e27
            "key": "ui.hide_tab_bar_when_single_tab",
            "type": "boolean",
 diff --git a/src/app/config_io.rs b/src/app/config_io.rs
-index 95014b30441893a23110912598fd9191869f4061..1e77954591bfdb857443106f7e5e3f464f862f51 100644
+index 59077b6fc20a81ecdde82a2db8fc03ac38fd5f84..5edeb7febf7b2e307c59c571b8eb8812d22e3d6f 100644
 --- a/src/app/config_io.rs
 +++ b/src/app/config_io.rs
 @@ -92,6 +92,19 @@ impl App {
@@ -36,34 +36,32 @@ index 95014b30441893a23110912598fd9191869f4061..1e77954591bfdb857443106f7e5e3f46
 +        }
 +    }
 +
-     pub(super) fn save_pane_history_persistence(&mut self, enabled: bool) {
-         if self.update_config_file("pane screen history", |content| {
-             crate::config::upsert_section_bool(content, "experimental", "pane_history", enabled)
+     pub(super) fn save_agent_panel_sort(&mut self, sort: crate::app::state::AgentPanelSort) {
+         let value = match sort {
+             crate::app::state::AgentPanelSort::Spaces => {
 diff --git a/src/app/input/mod.rs b/src/app/input/mod.rs
-index 570e8b8c44ad90393a510bbc943baf91867ae180..895a473c9e3967feba2cafc76eefc1fd8454f3fd 100644
+index f22c7994738d4fc96f95ce2c7f302e95e106766a..c7d2033beee2c6867672502fb9c3f0f82b5380ee 100644
 --- a/src/app/input/mod.rs
 +++ b/src/app/input/mod.rs
-@@ -344,6 +344,9 @@ impl App {
+@@ -406,6 +406,9 @@ impl App {
                          SettingsAction::SaveAgentBorderLabels(enabled) => {
                              self.save_agent_border_labels(enabled)
                          }
 +                        SettingsAction::SavePaneBorderIds(enabled) => {
 +                            self.save_pane_border_ids(enabled)
 +                        }
-                         SettingsAction::SavePaneHistory(enabled) => {
-                             self.save_pane_history_persistence(enabled)
+                         SettingsAction::InstallRecommendedIntegrations => {
+                             self.install_recommended_integrations()
                          }
 diff --git a/src/app/input/settings.rs b/src/app/input/settings.rs
-index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb877ae9e6 100644
+index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9ba2fa0d4 100644
 --- a/src/app/input/settings.rs
 +++ b/src/app/input/settings.rs
-@@ -17,11 +17,25 @@ pub(super) enum SettingsAction {
+@@ -17,9 +17,23 @@ pub(super) enum SettingsAction {
      SaveSound(bool),
      SaveToastDelivery(ToastDelivery),
      SaveAgentBorderLabels(bool),
 +    SavePaneBorderIds(bool),
-     SavePaneHistory(bool),
-     SaveSwitchAsciiInputSourceInPrefix(bool),
      InstallRecommendedIntegrations,
  }
  
@@ -80,18 +78,18 @@ index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb
 +    }
 +}
 +
- /// Map an Experiments row index to the toggle action that flips it.
- fn experiment_toggle_action(state: &AppState, idx: usize) -> Option<SettingsAction> {
-     match ExperimentSetting::ALL.get(idx).copied()? {
-@@ -47,6 +61,7 @@ impl App {
+ impl App {
+     pub(crate) fn handle_settings_key(&mut self, key: KeyEvent) {
+         let previous_section = self.state.settings.section;
+@@ -31,6 +45,7 @@ impl App {
                  SettingsAction::SaveAgentBorderLabels(enabled) => {
                      self.save_agent_border_labels(enabled)
                  }
 +                SettingsAction::SavePaneBorderIds(enabled) => self.save_pane_border_ids(enabled),
-                 SettingsAction::SavePaneHistory(enabled) => {
-                     self.save_pane_history_persistence(enabled)
+                 SettingsAction::InstallRecommendedIntegrations => {
+                     self.install_recommended_integrations()
                  }
-@@ -217,7 +232,7 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
+@@ -195,7 +210,7 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
              }
              KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
                  state.settings.section = SettingsSection::PaneLabels;
@@ -100,7 +98,7 @@ index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb
              }
              _ => {
                  if let Some(super::modal::ModalAction::Close) =
-@@ -228,12 +243,10 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
+@@ -206,12 +221,10 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
              }
          },
          SettingsSection::PaneLabels => match key.code {
@@ -116,7 +114,7 @@ index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb
              }
              KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
                  state.settings.section = SettingsSection::Toast;
-@@ -281,7 +294,7 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
+@@ -235,7 +248,7 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
              }
              KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
                  state.settings.section = SettingsSection::PaneLabels;
@@ -124,17 +122,17 @@ index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb
 +                state.settings.list.selected = 0;
              }
              KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
-                 state.settings.section = SettingsSection::Experiments;
-@@ -311,7 +324,7 @@ pub(crate) fn open_settings_at(state: &mut AppState, section: SettingsSection) {
+                 state.settings.section = SettingsSection::Theme;
+@@ -265,7 +278,7 @@ pub(crate) fn open_settings_at(state: &mut AppState, section: SettingsSection) {
          SettingsSection::Theme => current_theme_index(&state.theme_name),
          SettingsSection::Sound => usize::from(!state.sound_enabled()),
          SettingsSection::Toast => toast_delivery_index(state.toast_delivery()),
 -        SettingsSection::PaneLabels => usize::from(!state.agent_border_labels_enabled()),
 +        SettingsSection::PaneLabels => 0,
-         SettingsSection::Experiments => 0,
          SettingsSection::Integrations => 0,
      };
-@@ -428,9 +441,7 @@ impl AppState {
+     state.mode = Mode::Settings;
+@@ -373,9 +386,7 @@ impl AppState {
                          SettingsSection::Theme => current_theme_index(&self.theme_name),
                          SettingsSection::Sound => usize::from(!self.sound_enabled()),
                          SettingsSection::Toast => toast_delivery_index(self.toast_delivery()),
@@ -142,10 +140,10 @@ index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb
 -                            usize::from(!self.agent_border_labels_enabled())
 -                        }
 +                        SettingsSection::PaneLabels => 0,
-                         SettingsSection::Experiments => 0,
                          SettingsSection::Integrations => 0,
                      });
-@@ -451,10 +462,7 @@ impl AppState {
+                     return None;
+@@ -395,10 +406,7 @@ impl AppState {
                              let delivery = toast_delivery_for_index(idx);
                              Some(SettingsAction::SaveToastDelivery(delivery))
                          }
@@ -154,10 +152,10 @@ index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb
 -                            Some(SettingsAction::SaveAgentBorderLabels(enabled))
 -                        }
 +                        SettingsSection::PaneLabels => pane_label_toggle_action(self, idx),
-                         SettingsSection::Experiments => experiment_toggle_action(self, idx),
                          SettingsSection::Integrations => None,
                      };
-@@ -581,6 +589,54 @@ mod tests {
+                 }
+@@ -485,6 +493,73 @@ mod tests {
          assert_eq!(state.mode, Mode::Settings);
      }
  
@@ -209,13 +207,6 @@ index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb
 +        assert_eq!(state.settings.list.selected, 1);
 +    }
 +
-     #[test]
-     fn settings_tab_cycle_places_experiments_last() {
-         let mut state = state_with_workspaces(&["test"]);
-@@ -690,6 +746,25 @@ mod tests {
-         assert_eq!(app.state.settings.list.selected, 1);
-     }
- 
 +    #[test]
 +    fn settings_mouse_click_toggles_only_pane_id_row() {
 +        let mut app = app_for_mouse_test();
@@ -236,29 +227,29 @@ index 9651b075be8ac55873c3067b824aa522ad225696..627be13820232af9612a8d8a145a60eb
 +    }
 +
      #[test]
-     fn integration_update_badge_only_tracks_outdated_recommendations() {
+     fn settings_tab_cycle_wraps_after_integrations() {
          let mut state = state_with_workspaces(&["test"]);
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 1733e234658039578a9334338f67dff67a68b6d2..13756d437f786f2d6b84485e6075fe8cffb77533 100644
+index 5d070afa5194f5af5c92ba4bf0ad7d59c4aefb09..15f0ff83b0d739c35fd45fec9835c9a6b028fd33 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
-@@ -640,6 +640,7 @@ impl App {
-             pane_borders: config.ui.pane_borders,
+@@ -633,6 +633,7 @@ impl App {
+             pane_scrollbars: config.ui.pane_scrollbars,
              pane_gaps: config.ui.pane_gaps,
              show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
 +            show_pane_ids_on_pane_borders: config.ui.show_pane_ids_on_pane_borders,
              hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
+             tab_bar_position: config.ui.tab_bar_position,
              pane_history_persistence: config.experimental.pane_history,
-             reveal_hidden_cursor_for_cjk_ime: config.experimental.reveal_hidden_cursor_for_cjk_ime,
-@@ -1448,6 +1449,7 @@ impl App {
+@@ -1442,6 +1443,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
 +                self.state.show_pane_ids_on_pane_borders = config.ui.show_pane_ids_on_pane_borders;
                  self.state.hide_tab_bar_when_single_tab = config.ui.hide_tab_bar_when_single_tab;
+                 self.state.tab_bar_position = config.ui.tab_bar_position;
                  self.state.agent_panel_sort =
-                     agent_panel_sort_from_config(config.ui.agent_panel_sort);
-@@ -2717,7 +2719,7 @@ mod tests {
+@@ -2857,7 +2859,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -267,7 +258,7 @@ index 1733e234658039578a9334338f67dff67a68b6d2..13756d437f786f2d6b84485e6075fe8c
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -2766,6 +2768,7 @@ mod tests {
+@@ -2906,6 +2908,7 @@ mod tests {
          assert!(!app.state.redraw_on_focus_gained);
          assert!(!app.state.copy_on_select);
          assert!(app.state.prompt_new_workspace_name);
@@ -275,7 +266,7 @@ index 1733e234658039578a9334338f67dff67a68b6d2..13756d437f786f2d6b84485e6075fe8c
          assert!(app.state.selection.is_some());
          assert!(app.state.selection_autoscroll.is_some());
          assert_eq!(app.selection_autoscroll_deadline, Some(selection_deadline));
-@@ -3323,6 +3326,29 @@ mod tests {
+@@ -3441,6 +3444,29 @@ mod tests {
          let _ = std::fs::remove_dir_all(path.parent().unwrap());
      }
  
@@ -303,21 +294,21 @@ index 1733e234658039578a9334338f67dff67a68b6d2..13756d437f786f2d6b84485e6075fe8c
 +    }
 +
      #[test]
-     fn settings_save_pane_history_persists_then_applies_live_config() {
+     fn save_agent_panel_sort_persists_then_applies_live_config() {
          let _guard = config_env_lock().lock().unwrap();
 diff --git a/src/app/state.rs b/src/app/state.rs
-index 67318f022df1c6645731cdbe510a9e0679ec9cc3..39e0921d656f652e0d878203df02a3f14bbeefe8 100644
+index e6c23c4c09becdd279d4e970e73ddf16daf00b9d..cd0a9360da6d51eb5027e09598990cb09103ac84 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
-@@ -1524,6 +1524,7 @@ pub struct AppState {
-     pub pane_borders: bool,
+@@ -1496,6 +1496,7 @@ pub struct AppState {
+     pub pane_scrollbars: bool,
      pub pane_gaps: bool,
      pub show_agent_labels_on_pane_borders: bool,
 +    pub show_pane_ids_on_pane_borders: bool,
      pub hide_tab_bar_when_single_tab: bool,
+     pub tab_bar_position: TabBarPositionConfig,
      pub pane_history_persistence: bool,
-     /// Expose the focused pane's cursor anchor to the outer terminal even when
-@@ -1621,6 +1622,10 @@ impl AppState {
+@@ -1594,6 +1595,10 @@ impl AppState {
          self.show_agent_labels_on_pane_borders
      }
  
@@ -325,22 +316,22 @@ index 67318f022df1c6645731cdbe510a9e0679ec9cc3..39e0921d656f652e0d878203df02a3f1
 +        self.show_pane_ids_on_pane_borders
 +    }
 +
-     pub fn pane_history_persistence_enabled(&self) -> bool {
-         self.pane_history_persistence
-     }
-@@ -1898,6 +1903,7 @@ impl AppState {
-             pane_borders: true,
+     pub(crate) fn pane_exposes_host_cursor(
+         &self,
+         _ws_idx: usize,
+@@ -1864,6 +1869,7 @@ impl AppState {
+             pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
 +            show_pane_ids_on_pane_borders: false,
              hide_tab_bar_when_single_tab: false,
+             tab_bar_position: TabBarPositionConfig::Top,
              pane_history_persistence: false,
-             reveal_hidden_cursor_for_cjk_ime: false,
 diff --git a/src/config/model.rs b/src/config/model.rs
-index 72c810514b4340c0d2071ec70763c9ad2f69995c..ecd69abe802788d83f32656ef9f21f1b8c4c7dcb 100644
+index e56ac087226af0bb995b6678980eccf828156d92..af7c0c2dbc9336f45982da2bc464279eae472561 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
-@@ -810,6 +810,8 @@ pub struct UiConfig {
+@@ -820,6 +820,8 @@ pub struct UiConfig {
      pub pane_gaps: bool,
      /// Show agent labels in split pane borders when no manual pane label is set. Default: false.
      pub show_agent_labels_on_pane_borders: bool,
@@ -348,43 +339,44 @@ index 72c810514b4340c0d2071ec70763c9ad2f69995c..ecd69abe802788d83f32656ef9f21f1b
 +    pub show_pane_ids_on_pane_borders: bool,
      /// Hide the tab row when the workspace has one tab. Default: false.
      pub hide_tab_bar_when_single_tab: bool,
-     /// Agent sidebar ordering. Saved values are "spaces" or "priority". Default: "spaces".
-@@ -1013,6 +1015,7 @@ impl Default for UiConfig {
-             pane_borders: true,
+     /// Desktop tab row placement. Default: top.
+@@ -1026,6 +1028,7 @@ impl Default for UiConfig {
+             pane_scrollbars: true,
              pane_gaps: true,
              show_agent_labels_on_pane_borders: false,
 +            show_pane_ids_on_pane_borders: false,
              hide_tab_bar_when_single_tab: false,
+             tab_bar_position: TabBarPositionConfig::Top,
              agent_panel_sort: AgentPanelSortConfig::Spaces,
-             sidebar: SidebarConfig::default(),
-@@ -1244,6 +1247,7 @@ agent_panel_scope = "current"
-         assert!(default_config.ui.pane_borders);
+@@ -1259,6 +1262,7 @@ agent_panel_scope = "current"
+         assert!(default_config.ui.pane_scrollbars);
          assert!(default_config.ui.pane_gaps);
          assert!(!default_config.ui.show_agent_labels_on_pane_borders);
 +        assert!(!default_config.ui.show_pane_ids_on_pane_borders);
          assert!(!default_config.ui.hide_tab_bar_when_single_tab);
- 
-         let toml = r#"
-@@ -1251,12 +1255,14 @@ agent_panel_scope = "current"
- pane_borders = false
+         assert_eq!(
+             default_config.ui.tab_bar_position,
+@@ -1271,6 +1275,7 @@ pane_borders = false
+ pane_scrollbars = false
  pane_gaps = true
  show_agent_labels_on_pane_borders = true
 +show_pane_ids_on_pane_borders = true
  hide_tab_bar_when_single_tab = true
+ tab_bar_position = "bottom"
  "#;
-         let config: Config = toml::from_str(toml).unwrap();
-         assert!(!config.ui.pane_borders);
+@@ -1279,6 +1284,7 @@ tab_bar_position = "bottom"
+         assert!(!config.ui.pane_scrollbars);
          assert!(config.ui.pane_gaps);
          assert!(config.ui.show_agent_labels_on_pane_borders);
 +        assert!(config.ui.show_pane_ids_on_pane_borders);
          assert!(config.ui.hide_tab_bar_when_single_tab);
+         assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
      }
- 
 diff --git a/src/main.rs b/src/main.rs
-index b4517e21b99b571b82c028f65e6a921ca2c23739..543727f84702a15402be65d0c82bc83eb04d8fff 100644
+index 7b8613f8c4bdcbc6054ead1b2d947bee6189fd3d..6a88202446f8c121290e2a232baca303aa166770 100644
 --- a/src/main.rs
 +++ b/src/main.rs
-@@ -311,6 +311,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+@@ -315,6 +315,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
  # Show detected/reported agent labels in split pane borders when no manual pane name is set.
  # show_agent_labels_on_pane_borders = false
  
@@ -395,7 +387,7 @@ index b4517e21b99b571b82c028f65e6a921ca2c23739..543727f84702a15402be65d0c82bc83e
  # New tabs can still be created with the configured keybinding.
  # hide_tab_bar_when_single_tab = false
 diff --git a/src/ui/panes.rs b/src/ui/panes.rs
-index 5233060de7c23e798d5a9478d3ab0ff9b0f010e8..d9f0fa8701bd6bcbc6de00e5f49aa3b9bfe1c90c 100644
+index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..d08b9f448ae60216ce7c712fb191f76ad92a83e5 100644
 --- a/src/ui/panes.rs
 +++ b/src/ui/panes.rs
 @@ -7,7 +7,6 @@ use ratatui::{
@@ -442,10 +434,10 @@ index 5233060de7c23e798d5a9478d3ab0ff9b0f010e8..d9f0fa8701bd6bcbc6de00e5f49aa3b9
 +    PaneBorderTitles { left, right }
 +}
 +
- fn stable_terminal_inner_rect(pane_inner: Rect) -> Rect {
-     if pane_inner.width <= 4 {
+ fn stable_terminal_inner_rect(pane_inner: Rect, pane_scrollbars: bool) -> Rect {
+     if !pane_scrollbars || pane_inner.width <= 4 {
          return pane_inner;
-@@ -614,47 +645,64 @@ fn render_pane_border_titles(
+@@ -620,47 +651,64 @@ fn render_pane_border_titles(
      let buf = frame.buffer_mut();
      let area = buf.area;
      for info in pane_infos {
@@ -536,7 +528,7 @@ index 5233060de7c23e798d5a9478d3ab0ff9b0f010e8..d9f0fa8701bd6bcbc6de00e5f49aa3b9
      }
  }
  
-@@ -1004,6 +1052,67 @@ mod tests {
+@@ -1010,6 +1058,67 @@ mod tests {
          assert!(display_width(title.as_str()) <= 10);
      }
  
@@ -604,7 +596,7 @@ index 5233060de7c23e798d5a9478d3ab0ff9b0f010e8..d9f0fa8701bd6bcbc6de00e5f49aa3b9
      #[test]
      fn pane_border_renderer_places_adjacent_cjk_by_display_width() {
          let mut app = AppState::test_new();
-@@ -1037,6 +1146,118 @@ mod tests {
+@@ -1043,6 +1152,151 @@ mod tests {
          assert_eq!(buffer[(6, 0)].symbol(), "块");
      }
  
@@ -720,14 +712,47 @@ index 5233060de7c23e798d5a9478d3ab0ff9b0f010e8..d9f0fa8701bd6bcbc6de00e5f49aa3b9
 +        assert_eq!(row, "┌ shell ───────┐");
 +    }
 +
++    #[test]
++    fn disabled_pane_borders_do_not_draw_enabled_pane_ids() {
++        let mut app = AppState::test_new();
++        app.mode = Mode::Terminal;
++        app.pane_borders = false;
++        app.show_pane_ids_on_pane_borders = true;
++        app.view.terminal_area = Rect::new(0, 0, 16, 3);
++        let ws = Workspace::test_new("test");
++        let pane_id = ws.tabs[0].root_pane;
++        app.view.pane_infos = vec![PaneInfo {
++            id: pane_id,
++            rect: Rect::new(0, 0, 16, 3),
++            inner_rect: Rect::new(0, 0, 16, 3),
++            scrollbar_rect: None,
++            borders: Borders::ALL,
++            is_focused: false,
++        }];
++
++        let mut terminal =
++            ratatui::Terminal::new(ratatui::backend::TestBackend::new(16, 3)).unwrap();
++        terminal
++            .draw(|frame| render_view_pane_borders(&app, &ws, frame))
++            .unwrap();
++
++        assert!(terminal
++            .backend()
++            .buffer()
++            .content()
++            .iter()
++            .all(|cell| cell.symbol() == " "));
++        assert!(app.show_pane_ids_on_pane_borders);
++    }
++
      #[test]
      fn default_horizontal_split_uses_one_shared_divider_column() {
          let mut workspace = Workspace::test_new("test");
 diff --git a/src/ui/settings.rs b/src/ui/settings.rs
-index 8177d874b1cedbba0e6b9de718ee7cbd48dfb63e..4c2efe4b6e215fb223797156b9c21b939673267d 100644
+index 5052c91c0a80a9f0f173b8b8fd247315d80ab443..bfee42361119305f06b2f0aee8196dcd88dae510 100644
 --- a/src/ui/settings.rs
 +++ b/src/ui/settings.rs
-@@ -139,15 +139,7 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
+@@ -136,15 +136,7 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
              );
          }
          SettingsSection::PaneLabels => {
@@ -742,12 +767,13 @@ index 8177d874b1cedbba0e6b9de718ee7cbd48dfb63e..4c2efe4b6e215fb223797156b9c21b93
 -            );
 +            render_settings_pane_labels(app, frame, content_area);
          }
-         SettingsSection::Experiments => {
-             render_settings_experiments(app, frame, content_area);
-@@ -413,6 +405,58 @@ fn render_settings_toggle(
+         SettingsSection::Integrations => {
+             render_settings_integrations(app, frame, content_area);
+@@ -406,3 +398,91 @@ fn render_settings_toggle(
+         1,
      );
  }
- 
++
 +fn render_settings_pane_labels(app: &AppState, frame: &mut Frame, area: Rect) {
 +    let p = &app.palette;
 +    let [title_area, desc_area, _, list_area] = Layout::vertical([
@@ -800,13 +826,12 @@ index 8177d874b1cedbba0e6b9de718ee7cbd48dfb63e..4c2efe4b6e215fb223797156b9c21b93
 +    }
 +}
 +
- fn render_settings_experiments(app: &AppState, frame: &mut Frame, area: Rect) {
-     let p = &app.palette;
-     let [desc_area, _, list_area] = Layout::vertical([
-@@ -528,4 +572,32 @@ mod tests {
- 
-         assert!(rendered.contains("switch to ascii input source in prefix (macOS/Windows) [✓]"));
-     }
++#[cfg(test)]
++mod tests {
++    use ratatui::{backend::TestBackend, Terminal};
++
++    use super::*;
++    use crate::app::{state::SettingsSection, Mode};
 +
 +    #[test]
 +    fn pane_labels_render_two_independent_checkbox_rows() {
@@ -835,4 +860,4 @@ index 8177d874b1cedbba0e6b9de718ee7cbd48dfb63e..4c2efe4b6e215fb223797156b9c21b93
 +        assert!(rendered.contains("pane ids      [ ]"));
 +        assert!(rendered.contains("show full pane ids like w1:p2 on the right"));
 +    }
- }
++}
