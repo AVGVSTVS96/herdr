@@ -71,7 +71,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git remote add upstream https://github.com/ogulcancelik/herdr.git
+          git remote add upstream https://github.com/herdrdev/herdr.git
           track="$REQUESTED_TRACK"
           if [ -z "$track" ]; then
             case "$EVENT_SCHEDULE" in
@@ -90,7 +90,7 @@ jobs:
             source_sha="$(git rev-parse "${SOURCE_OVERRIDE}^{commit}")"
             git merge-base --is-ancestor "$source_sha" refs/remotes/upstream/master
           elif [ "$track" = "stable" ]; then
-            source_tag="$(gh api repos/ogulcancelik/herdr/releases/latest --jq .tag_name)"
+            source_tag="$(gh api repos/herdrdev/herdr/releases/latest --jq .tag_name)"
             git fetch --force upstream \
               "refs/tags/${source_tag}:refs/tags/upstream-${source_tag}"
             source_sha="$(git rev-parse "refs/tags/upstream-${source_tag}^{commit}")"
