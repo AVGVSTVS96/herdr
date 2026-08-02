@@ -135,7 +135,16 @@ jobs:
           source_sha='${{ steps.resolve.outputs.source_sha }}'
           git checkout --detach "$source_sha"
           # .github is fork-owned: upstream workflow files can never be pushed
-          # with the default Actions token, and their crons must not run here.
+          # with the default Actions token, and a repo holding codex secrets
+          # must not execute newly imported upstream automation. Surface what
+          # this excludes so upstream automation changes are never silent.
+          last_sync="$(git rev-list --min-parents=2 --first-parent -n 1 "$current_main")"
+          if [ -n "$last_sync" ] && \
+            ! git diff --quiet "${last_sync}^2" "$source_sha" -- .github; then
+            git diff "${last_sync}^2" "$source_sha" -- .github \
+              > "$RUNNER_TEMP/upstream-github.diff"
+            echo "::warning title=upstream .github changed::.github is fork-owned; review the upstream-github-diff artifact for excluded upstream automation changes"
+          fi
           git rm -r -q --ignore-unmatch .github
           git checkout "$current_main" -- \
             .github \
@@ -159,6 +168,14 @@ jobs:
             done < <(python3 scripts/fork_sync.py list-patches)
           fi
           echo "apply_failed=$apply_failed" >> "$GITHUB_OUTPUT"
+
+      - name: Upload upstream .github drift
+        if: steps.resolve.outputs.needs_sync == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: upstream-github-diff
+          path: ${{ runner.temp }}/upstream-github.diff
+          if-no-files-found: ignore
 
       - name: Install Rust
         if: steps.resolve.outputs.needs_sync == 'true'

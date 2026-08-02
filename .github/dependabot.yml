@@ -1,0 +1,8 @@
+# Fork-owned: keeps pinned action SHAs current. Cargo/npm stay upstream-owned;
+# bumping them here would create unclaimed source drift against the patches.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
