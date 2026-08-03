@@ -40,7 +40,7 @@ index 59077b6fc20a81ecdde82a2db8fc03ac38fd5f84..5edeb7febf7b2e307c59c571b8eb8812
          let value = match sort {
              crate::app::state::AgentPanelSort::Spaces => {
 diff --git a/src/app/input/mod.rs b/src/app/input/mod.rs
-index f22c7994738d4fc96f95ce2c7f302e95e106766a..c7d2033beee2c6867672502fb9c3f0f82b5380ee 100644
+index 7eca40b63b019eea793ebeb9f9e2ad74db27a100..97f37ddf9ffbd31dc5af1c683ff1061e9226c159 100644
 --- a/src/app/input/mod.rs
 +++ b/src/app/input/mod.rs
 @@ -406,6 +406,9 @@ impl App {
@@ -230,7 +230,7 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
      fn settings_tab_cycle_wraps_after_integrations() {
          let mut state = state_with_workspaces(&["test"]);
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 5d070afa5194f5af5c92ba4bf0ad7d59c4aefb09..15f0ff83b0d739c35fd45fec9835c9a6b028fd33 100644
+index d049c0f2819a3a7c40ad877a127f40f0f30e5ba3..c9d9276e4245d04f7e25779f20644aa77f4fbb4c 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
 @@ -633,6 +633,7 @@ impl App {
@@ -249,7 +249,7 @@ index 5d070afa5194f5af5c92ba4bf0ad7d59c4aefb09..15f0ff83b0d739c35fd45fec9835c9a6
                  self.state.hide_tab_bar_when_single_tab = config.ui.hide_tab_bar_when_single_tab;
                  self.state.tab_bar_position = config.ui.tab_bar_position;
                  self.state.agent_panel_sort =
-@@ -2857,7 +2859,7 @@ mod tests {
+@@ -2858,7 +2860,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -258,7 +258,7 @@ index 5d070afa5194f5af5c92ba4bf0ad7d59c4aefb09..15f0ff83b0d739c35fd45fec9835c9a6
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -2906,6 +2908,7 @@ mod tests {
+@@ -2907,6 +2909,7 @@ mod tests {
          assert!(!app.state.redraw_on_focus_gained);
          assert!(!app.state.copy_on_select);
          assert!(app.state.prompt_new_workspace_name);
@@ -266,7 +266,7 @@ index 5d070afa5194f5af5c92ba4bf0ad7d59c4aefb09..15f0ff83b0d739c35fd45fec9835c9a6
          assert!(app.state.selection.is_some());
          assert!(app.state.selection_autoscroll.is_some());
          assert_eq!(app.selection_autoscroll_deadline, Some(selection_deadline));
-@@ -3441,6 +3444,29 @@ mod tests {
+@@ -3442,6 +3445,29 @@ mod tests {
          let _ = std::fs::remove_dir_all(path.parent().unwrap());
      }
  
@@ -373,7 +373,7 @@ index e56ac087226af0bb995b6678980eccf828156d92..af7c0c2dbc9336f45982da2bc464279e
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
      }
 diff --git a/src/main.rs b/src/main.rs
-index 7b8613f8c4bdcbc6054ead1b2d947bee6189fd3d..6a88202446f8c121290e2a232baca303aa166770 100644
+index 27c1d92f0f6e9f9d11557acb50b0612b4148b9b4..3e7a8d90ef671333cfd641187608a4e9386c9ec0 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -315,6 +315,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
