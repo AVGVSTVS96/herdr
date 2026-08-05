@@ -658,14 +658,12 @@ fn render_pane_border_titles(
             .pane_state(info.id)
             .and_then(|pane| app.terminals.get(&pane.attached_terminal_id))
             .and_then(|terminal| terminal.border_label(app.show_agent_labels_on_pane_borders));
-        let pane_id = app
-            .show_pane_ids_on_pane_borders
-            .then(|| {
-                ws.public_pane_number(info.id).map(|pane_number| {
-                    crate::workspace::public_pane_id_for_number(&ws.id, pane_number)
-                })
-            })
-            .flatten();
+        let pane_id = if app.show_pane_ids_on_pane_borders {
+            ws.public_pane_number(info.id)
+                .map(|pane_number| crate::workspace::public_pane_id_for_number(&ws.id, pane_number))
+        } else {
+            None
+        };
         let titles = pane_border_titles(
             label.as_deref(),
             pane_id.as_deref(),

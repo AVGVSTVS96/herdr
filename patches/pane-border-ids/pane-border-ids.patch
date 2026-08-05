@@ -1,8 +1,8 @@
 diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
-index 5c9911b9d67c22fa1544ea8faf0af2a65c4e89d9..deeb67fdd91506494a538266b935ac2ca7ee5757 100644
+index e7a0539b38ca8316755cf2595cb8ff495fe281c6..ec7e9c3e08a21b9f3e7492530fe6c3d0e525baa5 100644
 --- a/docs/next/website/src/data/config-reference.json
 +++ b/docs/next/website/src/data/config-reference.json
-@@ -670,6 +670,12 @@
+@@ -676,6 +676,12 @@
            "default": "false",
            "description": "Show agent labels in split pane borders when no manual pane label is set."
          },
@@ -16,10 +16,10 @@ index 5c9911b9d67c22fa1544ea8faf0af2a65c4e89d9..deeb67fdd91506494a538266b935ac2c
            "key": "ui.hide_tab_bar_when_single_tab",
            "type": "boolean",
 diff --git a/src/app/config_io.rs b/src/app/config_io.rs
-index 59077b6fc20a81ecdde82a2db8fc03ac38fd5f84..5edeb7febf7b2e307c59c571b8eb8812d22e3d6f 100644
+index 9f7445b920a71718a4cbcc13415ace9df930dc93..f9c1fccf4e0101a13f0ca75f3cddc1f956beef83 100644
 --- a/src/app/config_io.rs
 +++ b/src/app/config_io.rs
-@@ -92,6 +92,19 @@ impl App {
+@@ -105,6 +105,19 @@ impl App {
          }
      }
  
@@ -40,10 +40,10 @@ index 59077b6fc20a81ecdde82a2db8fc03ac38fd5f84..5edeb7febf7b2e307c59c571b8eb8812
          let value = match sort {
              crate::app::state::AgentPanelSort::Spaces => {
 diff --git a/src/app/input/mod.rs b/src/app/input/mod.rs
-index 7eca40b63b019eea793ebeb9f9e2ad74db27a100..97f37ddf9ffbd31dc5af1c683ff1061e9226c159 100644
+index f77821c9de2eb24d0a96f15f83b50c7b771d2ae2..fc529efe40a7377bc483818a92c6011c4b5391c5 100644
 --- a/src/app/input/mod.rs
 +++ b/src/app/input/mod.rs
-@@ -406,6 +406,9 @@ impl App {
+@@ -409,6 +409,9 @@ impl App {
                          SettingsAction::SaveAgentBorderLabels(enabled) => {
                              self.save_agent_border_labels(enabled)
                          }
@@ -54,10 +54,10 @@ index 7eca40b63b019eea793ebeb9f9e2ad74db27a100..97f37ddf9ffbd31dc5af1c683ff1061e
                              self.install_recommended_integrations()
                          }
 diff --git a/src/app/input/settings.rs b/src/app/input/settings.rs
-index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9ba2fa0d4 100644
+index fb1a7d757c07565658b86d45611fa05470c309fe..7d09ce6eea6a6418c704cbcfd2faa27d1653b33f 100644
 --- a/src/app/input/settings.rs
 +++ b/src/app/input/settings.rs
-@@ -17,9 +17,23 @@ pub(super) enum SettingsAction {
+@@ -18,9 +18,23 @@ pub(super) enum SettingsAction {
      SaveSound(bool),
      SaveToastDelivery(ToastDelivery),
      SaveAgentBorderLabels(bool),
@@ -65,7 +65,7 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
      InstallRecommendedIntegrations,
  }
  
-+/// Map a Pane Labels row index to the independent toggle for that row.
++/// Map a Pane Labels row index to its independent toggle action.
 +fn pane_label_toggle_action(state: &AppState, idx: usize) -> Option<SettingsAction> {
 +    match idx {
 +        0 => Some(SettingsAction::SaveAgentBorderLabels(
@@ -81,7 +81,7 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
  impl App {
      pub(crate) fn handle_settings_key(&mut self, key: KeyEvent) {
          let previous_section = self.state.settings.section;
-@@ -31,6 +45,7 @@ impl App {
+@@ -33,6 +47,7 @@ impl App {
                  SettingsAction::SaveAgentBorderLabels(enabled) => {
                      self.save_agent_border_labels(enabled)
                  }
@@ -89,7 +89,7 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
                  SettingsAction::InstallRecommendedIntegrations => {
                      self.install_recommended_integrations()
                  }
-@@ -195,7 +210,7 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
+@@ -236,7 +251,7 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
              }
              KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
                  state.settings.section = SettingsSection::PaneLabels;
@@ -98,7 +98,7 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
              }
              _ => {
                  if let Some(super::modal::ModalAction::Close) =
-@@ -206,12 +221,10 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
+@@ -247,12 +262,10 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
              }
          },
          SettingsSection::PaneLabels => match key.code {
@@ -114,7 +114,7 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
              }
              KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
                  state.settings.section = SettingsSection::Toast;
-@@ -235,7 +248,7 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
+@@ -276,7 +289,7 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
              }
              KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
                  state.settings.section = SettingsSection::PaneLabels;
@@ -123,8 +123,8 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
              }
              KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
                  state.settings.section = SettingsSection::Theme;
-@@ -265,7 +278,7 @@ pub(crate) fn open_settings_at(state: &mut AppState, section: SettingsSection) {
-         SettingsSection::Theme => current_theme_index(&state.theme_name),
+@@ -307,7 +320,7 @@ pub(crate) fn open_settings_at(state: &mut AppState, section: SettingsSection) {
+         SettingsSection::Indicators => status_indicator_index(state.status_indicators),
          SettingsSection::Sound => usize::from(!state.sound_enabled()),
          SettingsSection::Toast => toast_delivery_index(state.toast_delivery()),
 -        SettingsSection::PaneLabels => usize::from(!state.agent_border_labels_enabled()),
@@ -132,8 +132,8 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
          SettingsSection::Integrations => 0,
      };
      state.mode = Mode::Settings;
-@@ -373,9 +386,7 @@ impl AppState {
-                         SettingsSection::Theme => current_theme_index(&self.theme_name),
+@@ -418,9 +431,7 @@ impl AppState {
+                         }
                          SettingsSection::Sound => usize::from(!self.sound_enabled()),
                          SettingsSection::Toast => toast_delivery_index(self.toast_delivery()),
 -                        SettingsSection::PaneLabels => {
@@ -143,7 +143,7 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
                          SettingsSection::Integrations => 0,
                      });
                      return None;
-@@ -395,10 +406,7 @@ impl AppState {
+@@ -443,10 +454,7 @@ impl AppState {
                              let delivery = toast_delivery_for_index(idx);
                              Some(SettingsAction::SaveToastDelivery(delivery))
                          }
@@ -155,7 +155,7 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
                          SettingsSection::Integrations => None,
                      };
                  }
-@@ -485,6 +493,73 @@ mod tests {
+@@ -554,6 +562,73 @@ mod tests {
          assert_eq!(state.mode, Mode::Settings);
      }
  
@@ -230,10 +230,10 @@ index 326d841b86181294db6681ec407b2fb5230a02e7..4054d2553dfac2b7a322a562d93d40e9
      fn settings_tab_cycle_wraps_after_integrations() {
          let mut state = state_with_workspaces(&["test"]);
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index d049c0f2819a3a7c40ad877a127f40f0f30e5ba3..c9d9276e4245d04f7e25779f20644aa77f4fbb4c 100644
+index 5e3c86de0ffd4ab6370e58ca3ac589b275c85b83..e498f4679dcc97d01c7d3ab10ccf8224fca79c3f 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
-@@ -633,6 +633,7 @@ impl App {
+@@ -634,6 +634,7 @@ impl App {
              pane_scrollbars: config.ui.pane_scrollbars,
              pane_gaps: config.ui.pane_gaps,
              show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
@@ -241,7 +241,7 @@ index d049c0f2819a3a7c40ad877a127f40f0f30e5ba3..c9d9276e4245d04f7e25779f20644aa7
              hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
              tab_bar_position: config.ui.tab_bar_position,
              pane_history_persistence: config.experimental.pane_history,
-@@ -1442,6 +1443,7 @@ impl App {
+@@ -1443,6 +1444,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
@@ -249,7 +249,7 @@ index d049c0f2819a3a7c40ad877a127f40f0f30e5ba3..c9d9276e4245d04f7e25779f20644aa7
                  self.state.hide_tab_bar_when_single_tab = config.ui.hide_tab_bar_when_single_tab;
                  self.state.tab_bar_position = config.ui.tab_bar_position;
                  self.state.agent_panel_sort =
-@@ -2858,7 +2860,7 @@ mod tests {
+@@ -2865,7 +2867,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -258,7 +258,7 @@ index d049c0f2819a3a7c40ad877a127f40f0f30e5ba3..c9d9276e4245d04f7e25779f20644aa7
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -2907,6 +2909,7 @@ mod tests {
+@@ -2914,6 +2916,7 @@ mod tests {
          assert!(!app.state.redraw_on_focus_gained);
          assert!(!app.state.copy_on_select);
          assert!(app.state.prompt_new_workspace_name);
@@ -266,7 +266,7 @@ index d049c0f2819a3a7c40ad877a127f40f0f30e5ba3..c9d9276e4245d04f7e25779f20644aa7
          assert!(app.state.selection.is_some());
          assert!(app.state.selection_autoscroll.is_some());
          assert_eq!(app.selection_autoscroll_deadline, Some(selection_deadline));
-@@ -3442,6 +3445,29 @@ mod tests {
+@@ -3449,6 +3452,29 @@ mod tests {
          let _ = std::fs::remove_dir_all(path.parent().unwrap());
      }
  
@@ -294,13 +294,13 @@ index d049c0f2819a3a7c40ad877a127f40f0f30e5ba3..c9d9276e4245d04f7e25779f20644aa7
 +    }
 +
      #[test]
-     fn save_agent_panel_sort_persists_then_applies_live_config() {
+     fn save_status_indicators_persists_then_applies_live_config() {
          let _guard = config_env_lock().lock().unwrap();
 diff --git a/src/app/state.rs b/src/app/state.rs
-index e6c23c4c09becdd279d4e970e73ddf16daf00b9d..cd0a9360da6d51eb5027e09598990cb09103ac84 100644
+index 0e1a8439afc8b0ecfb2b59e3bc58ebb8aa3f5fc9..36c025e20f6b7fa476186992d4e249668fe07177 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
-@@ -1496,6 +1496,7 @@ pub struct AppState {
+@@ -1523,6 +1523,7 @@ pub struct AppState {
      pub pane_scrollbars: bool,
      pub pane_gaps: bool,
      pub show_agent_labels_on_pane_borders: bool,
@@ -308,7 +308,7 @@ index e6c23c4c09becdd279d4e970e73ddf16daf00b9d..cd0a9360da6d51eb5027e09598990cb0
      pub hide_tab_bar_when_single_tab: bool,
      pub tab_bar_position: TabBarPositionConfig,
      pub pane_history_persistence: bool,
-@@ -1594,6 +1595,10 @@ impl AppState {
+@@ -1621,6 +1622,10 @@ impl AppState {
          self.show_agent_labels_on_pane_borders
      }
  
@@ -319,7 +319,7 @@ index e6c23c4c09becdd279d4e970e73ddf16daf00b9d..cd0a9360da6d51eb5027e09598990cb0
      pub(crate) fn pane_exposes_host_cursor(
          &self,
          _ws_idx: usize,
-@@ -1864,6 +1869,7 @@ impl AppState {
+@@ -1892,6 +1897,7 @@ impl AppState {
              pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
@@ -328,10 +328,10 @@ index e6c23c4c09becdd279d4e970e73ddf16daf00b9d..cd0a9360da6d51eb5027e09598990cb0
              tab_bar_position: TabBarPositionConfig::Top,
              pane_history_persistence: false,
 diff --git a/src/config/model.rs b/src/config/model.rs
-index e56ac087226af0bb995b6678980eccf828156d92..af7c0c2dbc9336f45982da2bc464279eae472561 100644
+index 5cbafaec9b90aad9def14911b154a4282c95cd42..f21c554134ad56748fc9576ce6be9ff19be12d8a 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
-@@ -820,6 +820,8 @@ pub struct UiConfig {
+@@ -844,6 +844,8 @@ pub struct UiConfig {
      pub pane_gaps: bool,
      /// Show agent labels in split pane borders when no manual pane label is set. Default: false.
      pub show_agent_labels_on_pane_borders: bool,
@@ -340,7 +340,7 @@ index e56ac087226af0bb995b6678980eccf828156d92..af7c0c2dbc9336f45982da2bc464279e
      /// Hide the tab row when the workspace has one tab. Default: false.
      pub hide_tab_bar_when_single_tab: bool,
      /// Desktop tab row placement. Default: top.
-@@ -1026,6 +1028,7 @@ impl Default for UiConfig {
+@@ -1055,6 +1057,7 @@ impl Default for UiConfig {
              pane_scrollbars: true,
              pane_gaps: true,
              show_agent_labels_on_pane_borders: false,
@@ -348,7 +348,7 @@ index e56ac087226af0bb995b6678980eccf828156d92..af7c0c2dbc9336f45982da2bc464279e
              hide_tab_bar_when_single_tab: false,
              tab_bar_position: TabBarPositionConfig::Top,
              agent_panel_sort: AgentPanelSortConfig::Spaces,
-@@ -1259,6 +1262,7 @@ agent_panel_scope = "current"
+@@ -1307,6 +1310,7 @@ status_indicators = "symbols"
          assert!(default_config.ui.pane_scrollbars);
          assert!(default_config.ui.pane_gaps);
          assert!(!default_config.ui.show_agent_labels_on_pane_borders);
@@ -356,7 +356,7 @@ index e56ac087226af0bb995b6678980eccf828156d92..af7c0c2dbc9336f45982da2bc464279e
          assert!(!default_config.ui.hide_tab_bar_when_single_tab);
          assert_eq!(
              default_config.ui.tab_bar_position,
-@@ -1271,6 +1275,7 @@ pane_borders = false
+@@ -1319,6 +1323,7 @@ pane_borders = false
  pane_scrollbars = false
  pane_gaps = true
  show_agent_labels_on_pane_borders = true
@@ -364,7 +364,7 @@ index e56ac087226af0bb995b6678980eccf828156d92..af7c0c2dbc9336f45982da2bc464279e
  hide_tab_bar_when_single_tab = true
  tab_bar_position = "bottom"
  "#;
-@@ -1279,6 +1284,7 @@ tab_bar_position = "bottom"
+@@ -1327,6 +1332,7 @@ tab_bar_position = "bottom"
          assert!(!config.ui.pane_scrollbars);
          assert!(config.ui.pane_gaps);
          assert!(config.ui.show_agent_labels_on_pane_borders);
@@ -373,10 +373,10 @@ index e56ac087226af0bb995b6678980eccf828156d92..af7c0c2dbc9336f45982da2bc464279e
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
      }
 diff --git a/src/main.rs b/src/main.rs
-index 27c1d92f0f6e9f9d11557acb50b0612b4148b9b4..3e7a8d90ef671333cfd641187608a4e9386c9ec0 100644
+index b6cc62b87109ea9d4c50b8dccddc8ad2ced3d7fb..b19a5f18fba29231552c5516bc15f604e86b4911 100644
 --- a/src/main.rs
 +++ b/src/main.rs
-@@ -315,6 +315,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+@@ -316,6 +316,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
  # Show detected/reported agent labels in split pane borders when no manual pane name is set.
  # show_agent_labels_on_pane_borders = false
  
@@ -387,7 +387,7 @@ index 27c1d92f0f6e9f9d11557acb50b0612b4148b9b4..3e7a8d90ef671333cfd641187608a4e9
  # New tabs can still be created with the configured keybinding.
  # hide_tab_bar_when_single_tab = false
 diff --git a/src/ui/panes.rs b/src/ui/panes.rs
-index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..d08b9f448ae60216ce7c712fb191f76ad92a83e5 100644
+index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..8ef2145f3c1c3a71ed1f516398d49e5013cbbbce 100644
 --- a/src/ui/panes.rs
 +++ b/src/ui/panes.rs
 @@ -7,7 +7,6 @@ use ratatui::{
@@ -437,7 +437,7 @@ index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..d08b9f448ae60216ce7c712fb191f76a
  fn stable_terminal_inner_rect(pane_inner: Rect, pane_scrollbars: bool) -> Rect {
      if !pane_scrollbars || pane_inner.width <= 4 {
          return pane_inner;
-@@ -620,47 +651,64 @@ fn render_pane_border_titles(
+@@ -620,47 +651,62 @@ fn render_pane_border_titles(
      let buf = frame.buffer_mut();
      let area = buf.area;
      for info in pane_infos {
@@ -452,26 +452,22 @@ index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..d08b9f448ae60216ce7c712fb191f76a
 -            .and_then(|terminal| terminal.border_label(app.show_agent_labels_on_pane_borders))
 -            .and_then(|label| pane_border_title(&label, info.rect.width, info.is_focused))
 -        else {
+-            continue;
 +            .and_then(|terminal| terminal.border_label(app.show_agent_labels_on_pane_borders));
-+        let pane_id = app
-+            .show_pane_ids_on_pane_borders
-+            .then(|| {
-+                ws.public_pane_number(info.id).map(|pane_number| {
-+                    crate::workspace::public_pane_id_for_number(&ws.id, pane_number)
-+                })
-+            })
-+            .flatten();
++        let pane_id = if app.show_pane_ids_on_pane_borders {
++            ws.public_pane_number(info.id)
++                .map(|pane_number| crate::workspace::public_pane_id_for_number(&ws.id, pane_number))
++        } else {
++            None
+         };
+-        let y = info.rect.y;
+-        if y < area.y || y >= area.y.saturating_add(area.height) {
 +        let titles = pane_border_titles(
 +            label.as_deref(),
 +            pane_id.as_deref(),
 +            info.rect.width.saturating_sub(2) as usize,
 +        );
 +        if titles.left.is_none() && titles.right.is_none() {
-             continue;
--        };
-+        }
-         let y = info.rect.y;
-         if y < area.y || y >= area.y.saturating_add(area.height) {
              continue;
          }
 -        let start_x = info.rect.x.saturating_add(1);
@@ -482,8 +478,10 @@ index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..d08b9f448ae60216ce7c712fb191f76a
 -            .saturating_sub(1)
 -            .min(area.x.saturating_add(area.width));
 -        if start_x >= end_x {
--            continue;
--        }
++        let y = info.rect.y;
++        if y < area.y || y >= area.y.saturating_add(area.height) {
+             continue;
+         }
 -        let color = if info.is_focused {
 +        let area_right = area.x.saturating_add(area.width);
 +        let pane_right = info.rect.x.saturating_add(info.rect.width);
@@ -528,7 +526,7 @@ index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..d08b9f448ae60216ce7c712fb191f76a
      }
  }
  
-@@ -1010,6 +1058,67 @@ mod tests {
+@@ -1010,6 +1056,67 @@ mod tests {
          assert!(display_width(title.as_str()) <= 10);
      }
  
@@ -596,7 +594,7 @@ index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..d08b9f448ae60216ce7c712fb191f76a
      #[test]
      fn pane_border_renderer_places_adjacent_cjk_by_display_width() {
          let mut app = AppState::test_new();
-@@ -1043,6 +1152,151 @@ mod tests {
+@@ -1043,6 +1150,151 @@ mod tests {
          assert_eq!(buffer[(6, 0)].symbol(), "块");
      }
  
@@ -749,10 +747,10 @@ index b904ce00c3f21c510aa4364d1e8abc96caf6e00e..d08b9f448ae60216ce7c712fb191f76a
      fn default_horizontal_split_uses_one_shared_divider_column() {
          let mut workspace = Workspace::test_new("test");
 diff --git a/src/ui/settings.rs b/src/ui/settings.rs
-index 5052c91c0a80a9f0f173b8b8fd247315d80ab443..bfee42361119305f06b2f0aee8196dcd88dae510 100644
+index 3cea6da309ddfcadf185f9a8682e357e20c9aa1b..49121fb9a23c5c069a752d753a75193e767330c6 100644
 --- a/src/ui/settings.rs
 +++ b/src/ui/settings.rs
-@@ -136,15 +136,7 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
+@@ -152,15 +152,7 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
              );
          }
          SettingsSection::PaneLabels => {
@@ -769,7 +767,7 @@ index 5052c91c0a80a9f0f173b8b8fd247315d80ab443..bfee42361119305f06b2f0aee8196dcd
          }
          SettingsSection::Integrations => {
              render_settings_integrations(app, frame, content_area);
-@@ -406,3 +398,91 @@ fn render_settings_toggle(
+@@ -422,3 +414,91 @@ fn render_settings_toggle(
          1,
      );
  }
