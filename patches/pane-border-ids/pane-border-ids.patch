@@ -297,10 +297,10 @@ index 5e3c86de0ffd4ab6370e58ca3ac589b275c85b83..e498f4679dcc97d01c7d3ab10ccf8224
      fn save_status_indicators_persists_then_applies_live_config() {
          let _guard = config_env_lock().lock().unwrap();
 diff --git a/src/app/state.rs b/src/app/state.rs
-index 0e1a8439afc8b0ecfb2b59e3bc58ebb8aa3f5fc9..36c025e20f6b7fa476186992d4e249668fe07177 100644
+index ca1b919b9fe6b38e64d9a0f115471d9c56a898ce..22af7ae12e7716679ac0fd93d2dde3f9060ba077 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
-@@ -1523,6 +1523,7 @@ pub struct AppState {
+@@ -1504,6 +1504,7 @@ pub struct AppState {
      pub pane_scrollbars: bool,
      pub pane_gaps: bool,
      pub show_agent_labels_on_pane_borders: bool,
@@ -308,7 +308,7 @@ index 0e1a8439afc8b0ecfb2b59e3bc58ebb8aa3f5fc9..36c025e20f6b7fa476186992d4e24966
      pub hide_tab_bar_when_single_tab: bool,
      pub tab_bar_position: TabBarPositionConfig,
      pub pane_history_persistence: bool,
-@@ -1621,6 +1622,10 @@ impl AppState {
+@@ -1602,6 +1603,10 @@ impl AppState {
          self.show_agent_labels_on_pane_borders
      }
  
@@ -319,7 +319,7 @@ index 0e1a8439afc8b0ecfb2b59e3bc58ebb8aa3f5fc9..36c025e20f6b7fa476186992d4e24966
      pub(crate) fn pane_exposes_host_cursor(
          &self,
          _ws_idx: usize,
-@@ -1892,6 +1897,7 @@ impl AppState {
+@@ -1873,6 +1878,7 @@ impl AppState {
              pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
@@ -373,7 +373,7 @@ index 5cbafaec9b90aad9def14911b154a4282c95cd42..f21c554134ad56748fc9576ce6be9ff1
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
      }
 diff --git a/src/main.rs b/src/main.rs
-index b6cc62b87109ea9d4c50b8dccddc8ad2ced3d7fb..b19a5f18fba29231552c5516bc15f604e86b4911 100644
+index 7f79730d54fdb0f1d2ec64fd0ca11bcce8525f31..302a05836566fbca98c119589db1166ee7d774c0 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -316,6 +316,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration

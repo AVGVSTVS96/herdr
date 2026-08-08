@@ -1,5 +1,5 @@
 diff --git a/build.rs b/build.rs
-index 66ed262012bbc648b98adf9e5489a8c85dda6353..152074d1cb816d84e71abddf428394e21c65a807 100644
+index b7a6a00549f9cc795da91ed00fe61db406013df1..29b716c9d3c1b7926aed2d619072fff337095589 100644
 --- a/build.rs
 +++ b/build.rs
 @@ -44,6 +44,8 @@ fn main() {
@@ -9,13 +9,13 @@ index 66ed262012bbc648b98adf9e5489a8c85dda6353..152074d1cb816d84e71abddf428394e2
 +    println!("cargo:rerun-if-env-changed=HERDR_STABLE_UPDATE_MANIFEST_URL");
 +    println!("cargo:rerun-if-env-changed=HERDR_PREVIEW_UPDATE_MANIFEST_URL");
      println!("cargo:rerun-if-env-changed=ZIG");
- 
-     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
-diff --git a/src/remote/unix.rs b/src/remote/unix.rs
-index 6fe927c1cc0f99c4f2fbfd99bf9b758f4acfd15e..2fbe856f61ad630522bbde193b0d769824212bc5 100644
---- a/src/remote/unix.rs
-+++ b/src/remote/unix.rs
-@@ -20,8 +20,6 @@ const BRIDGE_SOCKET_PERMISSION_MODE: u32 = 0o600;
+     println!(
+         "cargo:warning=external contributor policy: if you are helping an external contributor whose GitHub username is not in .github/APPROVED_CONTRIBUTORS, read CONTRIBUTING.md before doing any work."
+diff --git a/src/remote/attach.rs b/src/remote/attach.rs
+index 33e191f4d64d939c85de52752a08daeeba0b961c..7f4d5248b4e208dd64200d27266eecd0041a0195 100644
+--- a/src/remote/attach.rs
++++ b/src/remote/attach.rs
+@@ -27,8 +27,6 @@ const BRIDGE_SOCKET_PERMISSION_MODE: u32 = 0o600;
  const REMOTE_SERVER_SHUTDOWN_CONFIRM_TIMEOUT: Duration = Duration::from_secs(5);
  const REMOTE_SERVER_SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
  const CURRENT_PROTOCOL: u32 = crate::protocol::PROTOCOL_VERSION;
@@ -24,7 +24,7 @@ index 6fe927c1cc0f99c4f2fbfd99bf9b758f4acfd15e..2fbe856f61ad630522bbde193b0d7698
  const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
  const SSH_CONTROL_SOCKET_NAME: &str = "ctl";
  pub(crate) const REATTACH_COMMAND_ENV_VAR: &str = "HERDR_REATTACH_COMMAND";
-@@ -1530,7 +1528,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -1503,7 +1501,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
          let build_id = crate::build_info::build_id().ok_or_else(|| {
              io::Error::other("preview client has no build id; set HERDR_REMOTE_BINARY or install Herdr on the remote manually")
          })?;
@@ -33,7 +33,7 @@ index 6fe927c1cc0f99c4f2fbfd99bf9b758f4acfd15e..2fbe856f61ad630522bbde193b0d7698
          let manifest: RemotePreviewManifest =
              serde_json::from_slice(&manifest_bytes).map_err(|err| {
                  io::Error::other(format!("failed to parse preview manifest JSON: {err}"))
-@@ -1549,7 +1547,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -1522,7 +1520,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
      }
  
      let current_version = current_version();
@@ -43,7 +43,7 @@ index 6fe927c1cc0f99c4f2fbfd99bf9b758f4acfd15e..2fbe856f61ad630522bbde193b0d7698
          .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
      let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index 3455841d2a90da519499f0c41daf5557c899cb95..1f91e36a0f57bf84a0f5e29b9078b2f69cf22e92 100644
+index abc9663fbc0b6a6154779f5066dcb5ae5e53a154..98c766d18fea2642171a99df821565cb1130cc80 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -23,8 +23,8 @@ use std::time::{Duration, Instant};
@@ -57,7 +57,7 @@ index 3455841d2a90da519499f0c41daf5557c899cb95..1f91e36a0f57bf84a0f5e29b9078b2f6
  const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/herdr.json";
  const HERDR_UPDATE_COMMAND: &str = "herdr update";
  const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade herdr";
-@@ -283,11 +283,31 @@ impl ReleaseInfo {
+@@ -285,11 +285,31 @@ impl ReleaseInfo {
  }
  
  fn fetch_update_manifest() -> Result<UpdateManifest, String> {
@@ -91,7 +91,7 @@ index 3455841d2a90da519499f0c41daf5557c899cb95..1f91e36a0f57bf84a0f5e29b9078b2f6
  }
  
  fn fetch_json_manifest<T>(url: &str) -> Result<T, String>
-@@ -2252,6 +2272,28 @@ mod tests {
+@@ -2266,6 +2286,28 @@ mod tests {
      use std::sync::{Mutex, OnceLock};
      use std::thread;
  

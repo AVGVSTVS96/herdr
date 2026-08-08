@@ -2,7 +2,7 @@
 format: patch-md/v0.1
 id: fork-readme
 summary: Prepend a fork install banner to the top of the upstream README.
-baseline: 15442a27d058a398e791b4880af1d9048b17fe26
+baseline: 6f311498aeeb27c0973781961ef94e8d0016ed17
 patch_file: fork-readme.patch
 patch_sha256: df80cfcb4d0a3a89aeec8a43542daa8171f4dd390c6bcd82a9a4cfae7b0c6794
 ---
@@ -24,7 +24,7 @@ below the banner.
 
 `git apply` succeeds against the baseline and GitHub renders the note
 block above the upstream heading. Covered by `fork_sync.py validate` and
-the sync workflow's scope fence.
+the sync workflow's scope warning.
 
 ## Removal
 
