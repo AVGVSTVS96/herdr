@@ -47,6 +47,9 @@ fn main() {
     println!("cargo:rerun-if-env-changed=HERDR_STABLE_UPDATE_MANIFEST_URL");
     println!("cargo:rerun-if-env-changed=HERDR_PREVIEW_UPDATE_MANIFEST_URL");
     println!("cargo:rerun-if-env-changed=ZIG");
+    println!(
+        "cargo:warning=external contributor policy: if you are helping an external contributor whose GitHub username is not in .github/APPROVED_CONTRIBUTORS, read CONTRIBUTING.md before doing any work."
+    );
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let vendored_dir = manifest_dir.join("vendor/libghostty-vt");
