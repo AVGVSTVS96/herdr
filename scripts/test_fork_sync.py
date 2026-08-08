@@ -14,6 +14,31 @@ fork_sync = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(fork_sync)
 
 
+def new_file_diff(path: str) -> str:
+    return (
+        f"diff --git a/{path} b/{path}\n"
+        "new file mode 100644\n"
+        "index 0000000..7898192\n"
+        "--- /dev/null\n"
+        f"+++ b/{path}\n"
+        "@@ -0,0 +1 @@\n"
+        "+content\n"
+    )
+
+
+def fake_diff_git(changed_paths: list[str]):
+    """Stand-in for fork_sync.git covering the diff calls refresh makes."""
+
+    def fake_git(*args, text=True):
+        if "--name-only" in args:
+            return SimpleNamespace(stdout="".join(f"{p}\n" for p in changed_paths))
+        paths = args[args.index("--") + 1 :]
+        diff = "".join(new_file_diff(p) for p in paths if p in changed_paths)
+        return SimpleNamespace(stdout=diff.encode())
+
+    return fake_git
+
+
 def write_patch_package(
     patches: Path,
     patch_id: str,
@@ -227,6 +252,96 @@ rename to new.txt
             with mock.patch.object(fork_sync, "PATCHES_DIR", patches):
                 with self.assertRaisesRegex(SystemExit, "same baseline"):
                     fork_sync.validate()
+
+    def test_refresh_sweeps_unassigned_paths_into_overflow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            write_patch_package(patches, "one", "src/one.rs")
+
+            with (
+                mock.patch.object(fork_sync, "PATCHES_DIR", patches),
+                mock.patch.object(
+                    fork_sync,
+                    "git",
+                    fake_diff_git(["src/one.rs", "src/extra.rs"]),
+                ),
+            ):
+                fork_sync.refresh(SimpleNamespace(source_sha="b" * 40))
+                specs = {spec.patch_id: spec for spec in fork_sync.validate()}
+
+            self.assertEqual(specs["one"].paths, ("src/one.rs",))
+            self.assertEqual(specs["one"].baseline, "b" * 40)
+            overflow = specs["heal-overflow"]
+            self.assertEqual(overflow.paths, ("src/extra.rs",))
+            self.assertEqual(overflow.baseline, "b" * 40)
+
+    def test_refresh_removes_overflow_once_paths_are_assigned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            write_patch_package(patches, "one", "src/one.rs")
+            write_patch_package(patches, "heal-overflow", "src/extra.rs")
+
+            with (
+                mock.patch.object(fork_sync, "PATCHES_DIR", patches),
+                mock.patch.object(
+                    fork_sync, "git", fake_diff_git(["src/one.rs"])
+                ),
+            ):
+                fork_sync.refresh(SimpleNamespace(source_sha="b" * 40))
+
+            self.assertFalse((patches / "heal-overflow").exists())
+
+    def test_refresh_keeps_still_unassigned_overflow_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            write_patch_package(patches, "one", "src/one.rs")
+            write_patch_package(patches, "heal-overflow", "src/extra.rs")
+
+            with (
+                mock.patch.object(fork_sync, "PATCHES_DIR", patches),
+                mock.patch.object(
+                    fork_sync,
+                    "git",
+                    fake_diff_git(["src/one.rs", "src/extra.rs"]),
+                ),
+            ):
+                fork_sync.refresh(SimpleNamespace(source_sha="b" * 40))
+                specs = {spec.patch_id: spec for spec in fork_sync.validate()}
+
+            self.assertEqual(specs["heal-overflow"].paths, ("src/extra.rs",))
+
+    def test_verify_changed_paths_ignores_control_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            write_patch_package(patches, "one", "src/one.rs")
+
+            with (
+                mock.patch.object(fork_sync, "PATCHES_DIR", patches),
+                mock.patch.object(
+                    fork_sync,
+                    "git",
+                    fake_diff_git(
+                        ["src/one.rs", ".github/workflows/x.yml", "fork-feed/latest.json"]
+                    ),
+                ),
+            ):
+                fork_sync.verify_changed_paths(SimpleNamespace(source_sha="b" * 40))
+
+    def test_verify_changed_paths_flags_unassigned_source_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            patches = Path(tmp)
+            write_patch_package(patches, "one", "src/one.rs")
+
+            with (
+                mock.patch.object(fork_sync, "PATCHES_DIR", patches),
+                mock.patch.object(
+                    fork_sync, "git", fake_diff_git(["src/one.rs", "src/extra.rs"])
+                ),
+            ):
+                with self.assertRaisesRegex(SystemExit, "src/extra.rs"):
+                    fork_sync.verify_changed_paths(
+                        SimpleNamespace(source_sha="b" * 40)
+                    )
 
     def test_update_frontmatter_updates_only_derived_fields(self):
         with tempfile.TemporaryDirectory() as tmp:

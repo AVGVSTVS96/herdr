@@ -45,3 +45,10 @@ exactly its `PATCH.md` and referenced `.patch` file.
 Discovery order, dependency ordering, overlap policy, trusted paths, and
 whether a healed result may publish automatically are consumer policies, not
 part of the document format.
+
+This repository's sync workflow publishes heals unconditionally. When a heal
+changes paths no package claims (upstream renames or file splits), the
+refresh step sweeps those hunks into an auto-managed `patches/heal-overflow/`
+package so the next deterministic sync reproduces the full verified tree.
+Reassign its hunks to the right named package; refresh deletes the overflow
+package once nothing unassigned remains.

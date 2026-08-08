@@ -270,7 +270,7 @@ jobs:
             scripts/test_fork_sync.py \
             fork-feed
 
-      - name: Reject heals outside patch scope
+      - name: Warn when heal exceeds claimed patch paths
         if: steps.apply.outputs.apply_failed == 'true'
         shell: bash
         run: |
@@ -284,12 +284,11 @@ jobs:
               ':(exclude)patches' ':(exclude)fork-feed' \
               ':(exclude)scripts/fork_sync.py' ':(exclude)scripts/test_fork_sync.py' \
               > "$RUNNER_TEMP/healed.diff"
-            echo "heal exceeds claimed patch paths; widen the patch from the healed-diff artifact" >&2
-            exit 1
+            echo "::warning title=heal exceeded claimed patch paths::refresh sweeps the extra paths into patches/heal-overflow; review the healed-diff artifact and reassign them to named patches"
           fi
 
       - name: Upload healed diff for maintainer adoption
-        if: failure() && steps.apply.outputs.apply_failed == 'true'
+        if: always() && steps.apply.outputs.apply_failed == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: healed-diff
@@ -314,8 +313,6 @@ jobs:
           set -euo pipefail
           rm -rf .zig-cache vendor/libghostty-vt/.zig-cache vendor/libghostty-vt/zig-out
           git add -A
-          python3 scripts/fork_sync.py verify-changed-paths \
-            --source-sha '${{ steps.resolve.outputs.source_sha }}'
           python3 scripts/fork_sync.py refresh \
             --source-sha '${{ steps.resolve.outputs.source_sha }}'
           git add -A

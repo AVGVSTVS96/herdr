@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -24,6 +25,33 @@ CONTROL_PATHS = {
 CONTROL_PREFIXES = (".github/", "patches/", "fork-feed/")
 PATCH_FORMAT = "patch-md/v0.1"
 PREVIEW_BUILD_RETENTION_DAYS = 14
+OVERFLOW_PATCH_ID = "heal-overflow"
+
+OVERFLOW_PATCH_MD = """---
+format: patch-md/v0.1
+id: heal-overflow
+summary: Healed changes not yet attributed to a named patch package.
+baseline: {baseline}
+patch_file: heal-overflow.patch
+patch_sha256: {patch_sha256}
+---
+
+## Intent
+
+Preserve heal output that no named patch package claims, so the next
+deterministic sync reproduces the full verified tree unchanged.
+
+## Verification
+
+`git apply` succeeds against the baseline and the synced tree passes
+`just check`.
+
+## Removal
+
+Reassign these hunks to the named packages whose intents they
+implement; refresh deletes this package automatically once no
+unassigned changes remain.
+"""
 
 
 class PatchSpec(NamedTuple):
@@ -235,9 +263,20 @@ def update_frontmatter(path: Path, source_sha: str, patch_hash: str) -> None:
     path.write_text(content)
 
 
+def changed_source_paths(source_sha: str) -> list[str]:
+    changed = git("diff", "--name-only", source_sha).stdout.splitlines()
+    return [
+        path
+        for path in changed
+        if path not in CONTROL_PATHS and not path.startswith(CONTROL_PREFIXES)
+    ]
+
+
 def refresh(args: argparse.Namespace) -> None:
-    patches = validate()
-    for patch in patches:
+    named = [
+        patch for patch in validate() if patch.patch_id != OVERFLOW_PATCH_ID
+    ]
+    for patch in named:
         result = git(
             "diff",
             "--binary",
@@ -257,19 +296,51 @@ def refresh(args: argparse.Namespace) -> None:
             args.source_sha,
             sha256(patch.patch_path),
         )
+
+    # Heals may change paths no named patch claims (upstream renames, file
+    # splits). Sweep those into an auto-managed overflow package so the next
+    # deterministic sync reproduces the full verified tree instead of
+    # silently dropping healed hunks.
+    claimed = {path for patch in named for path in patch.paths}
+    overflow_paths = sorted(
+        path
+        for path in changed_source_paths(args.source_sha)
+        if path not in claimed
+    )
+    overflow_dir = PATCHES_DIR / OVERFLOW_PATCH_ID
+    if overflow_paths:
+        result = git(
+            "diff",
+            "--binary",
+            "--full-index",
+            args.source_sha,
+            "--",
+            *overflow_paths,
+            text=False,
+        )
+        if not result.stdout:
+            raise SystemExit("overflow paths produced an empty patch")
+        overflow_dir.mkdir(exist_ok=True)
+        patch_path = overflow_dir / f"{OVERFLOW_PATCH_ID}.patch"
+        patch_path.write_bytes(result.stdout)
+        (overflow_dir / "PATCH.md").write_text(
+            OVERFLOW_PATCH_MD.format(
+                baseline=args.source_sha,
+                patch_sha256=sha256(patch_path),
+            )
+        )
+    elif overflow_dir.exists():
+        shutil.rmtree(overflow_dir)
     validate()
 
 
 def verify_changed_paths(args: argparse.Namespace) -> None:
     patches = validate()
     claimed = {path for patch in patches for path in patch.paths}
-    changed = git("diff", "--name-only", args.source_sha).stdout.splitlines()
     unexpected = [
         path
-        for path in changed
+        for path in changed_source_paths(args.source_sha)
         if path not in claimed
-        and path not in CONTROL_PATHS
-        and not path.startswith(CONTROL_PREFIXES)
     ]
     if unexpected:
         raise SystemExit(
