@@ -62,11 +62,10 @@ fn pane_border_titles(
     PaneBorderTitles { left, right }
 }
 
+// Full view computation reaches this helper for active and background panes.
+// Keep terminal queries narrow, allocation-free, and short under the core lock.
 fn terminal_inner_rect(rt: &TerminalRuntime, pane_inner: Rect, pane_scrollbars: bool) -> Rect {
-    if !pane_scrollbars
-        || pane_inner.width <= 4
-        || rt.input_state().is_some_and(|state| state.alternate_screen)
-    {
+    if !pane_scrollbars || pane_inner.width <= 4 || rt.alternate_screen_active() {
         return pane_inner;
     }
 

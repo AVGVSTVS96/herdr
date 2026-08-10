@@ -1,8 +1,8 @@
 diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
-index a4732ffc129662d84aa215c8ab39b5e46879b83f..20990567a01850cb844964375d3f167042a832aa 100644
+index 6024aaab7217519c2ebfe8d8f9ef455772c90839..760f74eac3157270b7cfb4143f2a38256dff9515 100644
 --- a/docs/next/website/src/data/config-reference.json
 +++ b/docs/next/website/src/data/config-reference.json
-@@ -682,6 +682,12 @@
+@@ -718,6 +718,12 @@
            "default": "false",
            "description": "Show agent labels in split pane borders when no manual pane label is set."
          },
@@ -230,26 +230,26 @@ index fb1a7d757c07565658b86d45611fa05470c309fe..7d09ce6eea6a6418c704cbcfd2faa27d
      fn settings_tab_cycle_wraps_after_integrations() {
          let mut state = state_with_workspaces(&["test"]);
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 15f352af8fdce89c457cb6cd15b844c0c0b784f0..a239b34b657d26268ac2f5a731e25166efb973c3 100644
+index cca530ce4a70d3b2c092c723f12b259184270377..835de953dc7966880cc2ddde0fadc2cfdd03a531 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
-@@ -640,6 +640,7 @@ impl App {
+@@ -645,6 +645,7 @@ impl App {
              pane_scrollbars: config.ui.pane_scrollbars,
              pane_gaps: config.ui.pane_gaps,
              show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
 +            show_pane_ids_on_pane_borders: config.ui.show_pane_ids_on_pane_borders,
              hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
              tab_bar_position: config.ui.tab_bar_position,
-             pane_history_persistence: config.experimental.pane_history,
-@@ -1458,6 +1459,7 @@ impl App {
+             tab_bar_right: Vec::new(),
+@@ -1474,6 +1475,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
 +                self.state.show_pane_ids_on_pane_borders = config.ui.show_pane_ids_on_pane_borders;
                  self.state.hide_tab_bar_when_single_tab = config.ui.hide_tab_bar_when_single_tab;
                  self.state.tab_bar_position = config.ui.tab_bar_position;
-                 self.state.agent_panel_sort =
-@@ -2904,7 +2906,7 @@ mod tests {
+                 self.configure_tab_bar_status(
+@@ -2955,7 +2957,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -258,7 +258,7 @@ index 15f352af8fdce89c457cb6cd15b844c0c0b784f0..a239b34b657d26268ac2f5a731e25166
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -2953,6 +2955,7 @@ mod tests {
+@@ -3004,6 +3006,7 @@ mod tests {
          assert!(!app.state.redraw_on_focus_gained);
          assert!(!app.state.copy_on_select);
          assert!(app.state.prompt_new_workspace_name);
@@ -266,7 +266,7 @@ index 15f352af8fdce89c457cb6cd15b844c0c0b784f0..a239b34b657d26268ac2f5a731e25166
          assert!(app.state.selection.is_some());
          assert!(app.state.selection_autoscroll.is_some());
          assert_eq!(app.selection_autoscroll_deadline, Some(selection_deadline));
-@@ -3460,6 +3463,29 @@ mod tests {
+@@ -3511,6 +3514,29 @@ mod tests {
          let _ = std::fs::remove_dir_all(path.parent().unwrap());
      }
  
@@ -297,18 +297,18 @@ index 15f352af8fdce89c457cb6cd15b844c0c0b784f0..a239b34b657d26268ac2f5a731e25166
      fn settings_save_toast_delivery_persists_then_applies_live_config() {
          let _guard = config_env_lock().lock().unwrap();
 diff --git a/src/app/state.rs b/src/app/state.rs
-index e460f62b79779523bca47ef1fb53feb64c3f74ef..5c9a829991d3af2b6fb19ec47fb2e6ac5a004a38 100644
+index cbecef00dc1756303c05e8e175eb124b1dc567cf..b492fc9191eebb54dde14bc8739decb263303daa 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
-@@ -1430,6 +1430,7 @@ pub struct AppState {
+@@ -1436,6 +1436,7 @@ pub struct AppState {
      pub pane_scrollbars: bool,
      pub pane_gaps: bool,
      pub show_agent_labels_on_pane_borders: bool,
 +    pub show_pane_ids_on_pane_borders: bool,
      pub hide_tab_bar_when_single_tab: bool,
      pub tab_bar_position: TabBarPositionConfig,
-     pub pane_history_persistence: bool,
-@@ -1524,6 +1525,10 @@ impl AppState {
+     pub tab_bar_right: Vec<TabBarStatusSegment>,
+@@ -1532,6 +1533,10 @@ impl AppState {
          self.show_agent_labels_on_pane_borders
      }
  
@@ -319,19 +319,19 @@ index e460f62b79779523bca47ef1fb53feb64c3f74ef..5c9a829991d3af2b6fb19ec47fb2e6ac
      pub(crate) fn pane_exposes_host_cursor(
          &self,
          _ws_idx: usize,
-@@ -1796,6 +1801,7 @@ impl AppState {
+@@ -1804,6 +1809,7 @@ impl AppState {
              pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
 +            show_pane_ids_on_pane_borders: false,
              hide_tab_bar_when_single_tab: false,
              tab_bar_position: TabBarPositionConfig::Top,
-             pane_history_persistence: false,
+             tab_bar_right: Vec::new(),
 diff --git a/src/config/model.rs b/src/config/model.rs
-index ba700731eb0d60d4a770cb3b17affda6af9617c5..93df093d857b42abc843f301bd27db1fe30a0e06 100644
+index 0b237376def52d75c6532008679a70779d7e7ab0..33ee2a6b2cc7a1bf20876681c39b8c1e8db6c896 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
-@@ -846,6 +846,8 @@ pub struct UiConfig {
+@@ -882,6 +882,8 @@ pub struct UiConfig {
      pub pane_gaps: bool,
      /// Show agent labels in split pane borders when no manual pane label is set. Default: false.
      pub show_agent_labels_on_pane_borders: bool,
@@ -340,15 +340,15 @@ index ba700731eb0d60d4a770cb3b17affda6af9617c5..93df093d857b42abc843f301bd27db1f
      /// Hide the tab row when the workspace has one tab. Default: false.
      pub hide_tab_bar_when_single_tab: bool,
      /// Desktop tab row placement. Default: top.
-@@ -1058,6 +1060,7 @@ impl Default for UiConfig {
+@@ -1104,6 +1106,7 @@ impl Default for UiConfig {
              pane_scrollbars: true,
              pane_gaps: true,
              show_agent_labels_on_pane_borders: false,
 +            show_pane_ids_on_pane_borders: false,
              hide_tab_bar_when_single_tab: false,
              tab_bar_position: TabBarPositionConfig::Top,
-             agent_panel_sort: AgentPanelSortConfig::Spaces,
-@@ -1311,6 +1314,7 @@ status_indicators = "symbols"
+             tab_bar_right: Vec::new(),
+@@ -1359,6 +1362,7 @@ status_indicators = "symbols"
          assert!(default_config.ui.pane_scrollbars);
          assert!(default_config.ui.pane_gaps);
          assert!(!default_config.ui.show_agent_labels_on_pane_borders);
@@ -356,27 +356,27 @@ index ba700731eb0d60d4a770cb3b17affda6af9617c5..93df093d857b42abc843f301bd27db1f
          assert!(!default_config.ui.hide_tab_bar_when_single_tab);
          assert_eq!(
              default_config.ui.tab_bar_position,
-@@ -1324,6 +1328,7 @@ pane_outer_borders = false
+@@ -1374,6 +1378,7 @@ pane_outer_borders = false
  pane_scrollbars = false
  pane_gaps = true
  show_agent_labels_on_pane_borders = true
 +show_pane_ids_on_pane_borders = true
  hide_tab_bar_when_single_tab = true
  tab_bar_position = "bottom"
- "#;
-@@ -1333,6 +1338,7 @@ tab_bar_position = "bottom"
+ tab_bar_right = [
+@@ -1391,6 +1396,7 @@ tab_bar_right_separator = " · "
          assert!(!config.ui.pane_scrollbars);
          assert!(config.ui.pane_gaps);
          assert!(config.ui.show_agent_labels_on_pane_borders);
 +        assert!(config.ui.show_pane_ids_on_pane_borders);
          assert!(config.ui.hide_tab_bar_when_single_tab);
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
-     }
+         assert_eq!(config.ui.tab_bar_right.len(), 5);
 diff --git a/src/main.rs b/src/main.rs
-index 2db4f8aa5e11112b2e105785a6462c7b6a586ae9..171cd43e80082ad54166cfabadf1f5c05cc9dcb1 100644
+index c32cfe537c6fdba84b5cd230d9127ec606fa9955..18af0fbb6a8b0a6dd49ca0646f42c7537586b0f8 100644
 --- a/src/main.rs
 +++ b/src/main.rs
-@@ -321,6 +321,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+@@ -327,6 +327,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
  # Show detected/reported agent labels in split pane borders when no manual pane name is set.
  # show_agent_labels_on_pane_borders = false
  
@@ -387,7 +387,7 @@ index 2db4f8aa5e11112b2e105785a6462c7b6a586ae9..171cd43e80082ad54166cfabadf1f5c0
  # New tabs can still be created with the configured keybinding.
  # hide_tab_bar_when_single_tab = false
 diff --git a/src/ui/panes.rs b/src/ui/panes.rs
-index df9813cf3601489ef8d789d8dd1cf5404c9dc4e5..ec4fc0832910df34f350d3d19de082fef9557f7a 100644
+index f20b55b588a6c9e54a8fd1d010c577f4b80e3c7f..53914b9f36cf9805465a8d0b3a9960d06c54c74b 100644
 --- a/src/ui/panes.rs
 +++ b/src/ui/panes.rs
 @@ -7,7 +7,6 @@ use ratatui::{
@@ -434,10 +434,10 @@ index df9813cf3601489ef8d789d8dd1cf5404c9dc4e5..ec4fc0832910df34f350d3d19de082fe
 +    PaneBorderTitles { left, right }
 +}
 +
+ // Full view computation reaches this helper for active and background panes.
+ // Keep terminal queries narrow, allocation-free, and short under the core lock.
  fn terminal_inner_rect(rt: &TerminalRuntime, pane_inner: Rect, pane_scrollbars: bool) -> Rect {
-     if !pane_scrollbars
-         || pane_inner.width <= 4
-@@ -660,47 +691,62 @@ fn render_pane_border_titles(
+@@ -659,47 +690,62 @@ fn render_pane_border_titles(
      let buf = frame.buffer_mut();
      let area = buf.area;
      for info in pane_infos {
@@ -526,7 +526,7 @@ index df9813cf3601489ef8d789d8dd1cf5404c9dc4e5..ec4fc0832910df34f350d3d19de082fe
      }
  }
  
-@@ -1050,6 +1096,67 @@ mod tests {
+@@ -1049,6 +1095,67 @@ mod tests {
          assert!(display_width(title.as_str()) <= 10);
      }
  
@@ -594,7 +594,7 @@ index df9813cf3601489ef8d789d8dd1cf5404c9dc4e5..ec4fc0832910df34f350d3d19de082fe
      #[test]
      fn pane_border_renderer_places_adjacent_cjk_by_display_width() {
          let mut app = AppState::test_new();
-@@ -1083,6 +1190,151 @@ mod tests {
+@@ -1082,6 +1189,151 @@ mod tests {
          assert_eq!(buffer[(6, 0)].symbol(), "块");
      }
  
