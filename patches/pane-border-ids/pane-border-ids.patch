@@ -1,5 +1,5 @@
 diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
-index bcc3f02ee07b443b1b295ed5788bf3083ec9b116..07efde0f8d1d7cc876bd4c65b02a9306f57de375 100644
+index 231f7521e8bbada161ff37a035214c00f48d3139..2875153a56271e11484139affbae862c29d4837a 100644
 --- a/docs/next/website/src/data/config-reference.json
 +++ b/docs/next/website/src/data/config-reference.json
 @@ -718,6 +718,12 @@
@@ -328,7 +328,7 @@ index cbecef00dc1756303c05e8e175eb124b1dc567cf..b492fc9191eebb54dde14bc8739decb2
              tab_bar_position: TabBarPositionConfig::Top,
              tab_bar_right: Vec::new(),
 diff --git a/src/config/model.rs b/src/config/model.rs
-index 9b5904fbb43870e2bd30ffa1ae5d8c58d01df2a1..671f85df3fffb756200e92044ef505fd135785b9 100644
+index 6d6083ad775ab31ce5f3367d41adeeaab07ed164..639c9d99e1eda33f5cce6643bc7d7872298503dc 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
 @@ -882,6 +882,8 @@ pub struct UiConfig {
@@ -373,7 +373,7 @@ index 9b5904fbb43870e2bd30ffa1ae5d8c58d01df2a1..671f85df3fffb756200e92044ef505fd
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
          assert_eq!(config.ui.tab_bar_right.len(), 5);
 diff --git a/src/main.rs b/src/main.rs
-index 4d915158d3807835dfb1b4347ea4adfc9a6fae59..7964da22707bbf2e2b6884bbba3a59ae5aaddb14 100644
+index d3b721925660eb9e03ecd033e9309455531a4b0f..2dd718129b9d1f6ce3be7427332f7fa7d98005e2 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -327,6 +327,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
