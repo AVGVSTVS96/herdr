@@ -43,10 +43,10 @@ index 33e191f4d64d939c85de52752a08daeeba0b961c..7f4d5248b4e208dd64200d27266eecd0
          .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
      let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index abc9663fbc0b6a6154779f5066dcb5ae5e53a154..98c766d18fea2642171a99df821565cb1130cc80 100644
+index 161386f920b7878f0000e580ccd63c392e031706..485f8246d0477bfeaff3622aa2c639eae7d759e0 100644
 --- a/src/update.rs
 +++ b/src/update.rs
-@@ -23,8 +23,8 @@ use std::time::{Duration, Instant};
+@@ -22,8 +22,8 @@ use std::time::{Duration, Instant};
  use interprocess::local_socket::traits::Stream as _;
  use serde::{Deserialize, Deserializer};
  
@@ -57,7 +57,7 @@ index abc9663fbc0b6a6154779f5066dcb5ae5e53a154..98c766d18fea2642171a99df821565cb
  const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/herdr.json";
  const HERDR_UPDATE_COMMAND: &str = "herdr update";
  const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade herdr";
-@@ -285,11 +285,31 @@ impl ReleaseInfo {
+@@ -320,11 +320,31 @@ impl ReleaseInfo {
  }
  
  fn fetch_update_manifest() -> Result<UpdateManifest, String> {
@@ -91,7 +91,7 @@ index abc9663fbc0b6a6154779f5066dcb5ae5e53a154..98c766d18fea2642171a99df821565cb
  }
  
  fn fetch_json_manifest<T>(url: &str) -> Result<T, String>
-@@ -2266,6 +2286,28 @@ mod tests {
+@@ -2360,6 +2380,28 @@ mod tests {
      use std::sync::{Mutex, OnceLock};
      use std::thread;
  
