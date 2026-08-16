@@ -1,8 +1,8 @@
 diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
-index c16db7a193db5b0608ca8bf69484d125b4d3bf04..382e71ea59b0fc94ed21ac8e45415034b184d98b 100644
+index aa5b7ed0ea314255efbc9212fa879e029868ba33..65ceaa816b121d39d8b3f9b47557e56d1fa875a8 100644
 --- a/docs/next/website/src/data/config-reference.json
 +++ b/docs/next/website/src/data/config-reference.json
-@@ -724,6 +724,12 @@
+@@ -748,6 +748,12 @@
            "default": "false",
            "description": "Show agent labels in split pane borders when no manual pane label is set."
          },
@@ -230,10 +230,10 @@ index fb1a7d757c07565658b86d45611fa05470c309fe..7d09ce6eea6a6418c704cbcfd2faa27d
      fn settings_tab_cycle_wraps_after_integrations() {
          let mut state = state_with_workspaces(&["test"]);
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 49a905ae322955e1c3d969cc4b08442f08e4558c..f09de9f27d60c324f0410fb5e08e2ca201913ba0 100644
+index 3524411530e451be561b54b7298c7c86d4f54e88..1b52da8772e6c6c5a60adb730b99568f7b79228f 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
-@@ -649,6 +649,7 @@ impl App {
+@@ -650,6 +650,7 @@ impl App {
              pane_scrollbars: config.ui.pane_scrollbars,
              pane_gaps: config.ui.pane_gaps,
              show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
@@ -241,7 +241,7 @@ index 49a905ae322955e1c3d969cc4b08442f08e4558c..f09de9f27d60c324f0410fb5e08e2ca2
              hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
              tab_bar_position: config.ui.tab_bar_position,
              tab_bar_right: Vec::new(),
-@@ -1492,6 +1493,7 @@ impl App {
+@@ -1493,6 +1494,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
@@ -249,16 +249,16 @@ index 49a905ae322955e1c3d969cc4b08442f08e4558c..f09de9f27d60c324f0410fb5e08e2ca2
                  self.state.hide_tab_bar_when_single_tab = config.ui.hide_tab_bar_when_single_tab;
                  self.state.tab_bar_position = config.ui.tab_bar_position;
                  self.configure_tab_bar_status(
-@@ -2974,7 +2976,7 @@ mod tests {
+@@ -2983,7 +2985,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
--            "[terminal]\ndefault_shell = \"nu\"\nshell_mode = \"non_login\"\nnew_cwd = \"home\"\n[keys]\nnew_workspace = \"prefix+m\"\nprefix = \"ctrl+a\"\n[update]\nversion_check = false\nmanifest_check = false\n[ui]\nagent_panel_sort = \"priority\"\nredraw_on_focus_gained = false\ncopy_on_select = false\nright_click_passthrough_modifier = \"ctrl\"\nprompt_new_workspace_name = true\n[ui.toast]\ndelivery = \"herdr\"\n[experimental]\nswitch_ascii_input_source_in_prefix = true\n",
-+            "[terminal]\ndefault_shell = \"nu\"\nshell_mode = \"non_login\"\nnew_cwd = \"home\"\n[keys]\nnew_workspace = \"prefix+m\"\nprefix = \"ctrl+a\"\n[update]\nversion_check = false\nmanifest_check = false\n[ui]\nagent_panel_sort = \"priority\"\nredraw_on_focus_gained = false\ncopy_on_select = false\nright_click_passthrough_modifier = \"ctrl\"\nprompt_new_workspace_name = true\nshow_pane_ids_on_pane_borders = true\n[ui.toast]\ndelivery = \"herdr\"\n[experimental]\nswitch_ascii_input_source_in_prefix = true\n",
+-            "[terminal]\ndefault_shell = \"nu\"\nshell_mode = \"non_login\"\nnew_cwd = \"home\"\n[keys]\nnew_workspace = \"prefix+m\"\nprefix = \"ctrl+a\"\n[update]\nversion_check = false\nmanifest_check = false\n[server]\nheadless_cols = 160\nheadless_rows = 50\n[ui]\nagent_panel_sort = \"priority\"\nredraw_on_focus_gained = false\ncopy_on_select = false\nright_click_passthrough_modifier = \"ctrl\"\nprompt_new_workspace_name = true\n[ui.toast]\ndelivery = \"herdr\"\n[experimental]\nswitch_ascii_input_source_in_prefix = true\n",
++            "[terminal]\ndefault_shell = \"nu\"\nshell_mode = \"non_login\"\nnew_cwd = \"home\"\n[keys]\nnew_workspace = \"prefix+m\"\nprefix = \"ctrl+a\"\n[update]\nversion_check = false\nmanifest_check = false\n[server]\nheadless_cols = 160\nheadless_rows = 50\n[ui]\nagent_panel_sort = \"priority\"\nredraw_on_focus_gained = false\ncopy_on_select = false\nright_click_passthrough_modifier = \"ctrl\"\nprompt_new_workspace_name = true\nshow_pane_ids_on_pane_borders = true\n[ui.toast]\ndelivery = \"herdr\"\n[experimental]\nswitch_ascii_input_source_in_prefix = true\n",
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -3023,6 +3025,7 @@ mod tests {
+@@ -3033,6 +3035,7 @@ mod tests {
          assert!(!app.state.redraw_on_focus_gained);
          assert!(!app.state.copy_on_select);
          assert!(app.state.prompt_new_workspace_name);
@@ -266,7 +266,7 @@ index 49a905ae322955e1c3d969cc4b08442f08e4558c..f09de9f27d60c324f0410fb5e08e2ca2
          assert!(app.state.selection.is_some());
          assert!(app.state.selection_autoscroll.is_some());
          assert_eq!(app.selection_autoscroll_deadline, Some(selection_deadline));
-@@ -3530,6 +3533,29 @@ mod tests {
+@@ -3568,6 +3571,29 @@ mod tests {
          let _ = std::fs::remove_dir_all(path.parent().unwrap());
      }
  
@@ -294,13 +294,13 @@ index 49a905ae322955e1c3d969cc4b08442f08e4558c..f09de9f27d60c324f0410fb5e08e2ca2
 +    }
 +
      #[test]
-     fn settings_save_toast_delivery_persists_then_applies_live_config() {
+     fn save_status_indicators_persists_then_applies_live_config() {
          let _guard = config_env_lock().lock().unwrap();
 diff --git a/src/app/state.rs b/src/app/state.rs
-index ea550472ac463a7bbfec4759eda9eb4d50758793..78a85ad554bbc90cea31a7c28cbcf83a1fb5da74 100644
+index b8205451767435111d8512380bd1d4fc2a04309b..effd3a455cb187fc4308b78f2b08fcca0fcbfd73 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
-@@ -1462,6 +1462,7 @@ pub struct AppState {
+@@ -1487,6 +1487,7 @@ pub struct AppState {
      pub pane_scrollbars: bool,
      pub pane_gaps: bool,
      pub show_agent_labels_on_pane_borders: bool,
@@ -308,7 +308,7 @@ index ea550472ac463a7bbfec4759eda9eb4d50758793..78a85ad554bbc90cea31a7c28cbcf83a
      pub hide_tab_bar_when_single_tab: bool,
      pub tab_bar_position: TabBarPositionConfig,
      pub tab_bar_right: Vec<TabBarStatusSegment>,
-@@ -1558,6 +1559,10 @@ impl AppState {
+@@ -1583,6 +1584,10 @@ impl AppState {
          self.show_agent_labels_on_pane_borders
      }
  
@@ -319,7 +319,7 @@ index ea550472ac463a7bbfec4759eda9eb4d50758793..78a85ad554bbc90cea31a7c28cbcf83a
      pub(crate) fn pane_exposes_host_cursor(
          &self,
          _ws_idx: usize,
-@@ -1830,6 +1835,7 @@ impl AppState {
+@@ -1859,6 +1864,7 @@ impl AppState {
              pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
@@ -328,10 +328,10 @@ index ea550472ac463a7bbfec4759eda9eb4d50758793..78a85ad554bbc90cea31a7c28cbcf83a
              tab_bar_position: TabBarPositionConfig::Top,
              tab_bar_right: Vec::new(),
 diff --git a/src/config/model.rs b/src/config/model.rs
-index 6d6083ad775ab31ce5f3367d41adeeaab07ed164..639c9d99e1eda33f5cce6643bc7d7872298503dc 100644
+index ad779d263b957acd1ed1a80057e3441be56caf39..536edb13ddafcffc30d4be2850bf9ad2a41bc7fd 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
-@@ -882,6 +882,8 @@ pub struct UiConfig {
+@@ -883,6 +883,8 @@ pub struct UiConfig {
      pub pane_gaps: bool,
      /// Show agent labels in split pane borders when no manual pane label is set. Default: false.
      pub show_agent_labels_on_pane_borders: bool,
@@ -340,7 +340,7 @@ index 6d6083ad775ab31ce5f3367d41adeeaab07ed164..639c9d99e1eda33f5cce6643bc7d7872
      /// Hide the tab row when the workspace has one tab. Default: false.
      pub hide_tab_bar_when_single_tab: bool,
      /// Desktop tab row placement. Default: top.
-@@ -1107,6 +1109,7 @@ impl Default for UiConfig {
+@@ -1117,6 +1119,7 @@ impl Default for UiConfig {
              pane_scrollbars: true,
              pane_gaps: true,
              show_agent_labels_on_pane_borders: false,
@@ -348,7 +348,7 @@ index 6d6083ad775ab31ce5f3367d41adeeaab07ed164..639c9d99e1eda33f5cce6643bc7d7872
              hide_tab_bar_when_single_tab: false,
              tab_bar_position: TabBarPositionConfig::Top,
              tab_bar_right: Vec::new(),
-@@ -1363,6 +1366,7 @@ status_indicators = "symbols"
+@@ -1382,6 +1385,7 @@ status_indicators = "symbols"
          assert!(default_config.ui.pane_scrollbars);
          assert!(default_config.ui.pane_gaps);
          assert!(!default_config.ui.show_agent_labels_on_pane_borders);
@@ -356,7 +356,7 @@ index 6d6083ad775ab31ce5f3367d41adeeaab07ed164..639c9d99e1eda33f5cce6643bc7d7872
          assert!(!default_config.ui.hide_tab_bar_when_single_tab);
          assert_eq!(
              default_config.ui.tab_bar_position,
-@@ -1378,6 +1382,7 @@ pane_outer_borders = false
+@@ -1397,6 +1401,7 @@ pane_outer_borders = false
  pane_scrollbars = false
  pane_gaps = true
  show_agent_labels_on_pane_borders = true
@@ -364,7 +364,7 @@ index 6d6083ad775ab31ce5f3367d41adeeaab07ed164..639c9d99e1eda33f5cce6643bc7d7872
  hide_tab_bar_when_single_tab = true
  tab_bar_position = "bottom"
  tab_bar_right = [
-@@ -1395,6 +1400,7 @@ tab_bar_right_separator = " · "
+@@ -1414,6 +1419,7 @@ tab_bar_right_separator = " · "
          assert!(!config.ui.pane_scrollbars);
          assert!(config.ui.pane_gaps);
          assert!(config.ui.show_agent_labels_on_pane_borders);
@@ -373,10 +373,10 @@ index 6d6083ad775ab31ce5f3367d41adeeaab07ed164..639c9d99e1eda33f5cce6643bc7d7872
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
          assert_eq!(config.ui.tab_bar_right.len(), 5);
 diff --git a/src/main.rs b/src/main.rs
-index 8505e5cc2896581e3ea2e2319fb1e8a97079002f..b018ac35944ffba8abf3754aca715bc157a1d11e 100644
+index d2fc059526eeb5fc0718bae7527d287b57afe9a3..993a928a299c6ecbd45c2944160fac0c994851c7 100644
 --- a/src/main.rs
 +++ b/src/main.rs
-@@ -328,6 +328,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+@@ -335,6 +335,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
  # Show detected/reported agent labels in split pane borders when no manual pane name is set.
  # show_agent_labels_on_pane_borders = false
  
