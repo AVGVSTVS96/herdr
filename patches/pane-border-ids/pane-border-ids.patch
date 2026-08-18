@@ -40,7 +40,7 @@ index 9f7445b920a71718a4cbcc13415ace9df930dc93..f9c1fccf4e0101a13f0ca75f3cddc1f9
          let value = match sort {
              crate::app::state::AgentPanelSort::Spaces => {
 diff --git a/src/app/input/mod.rs b/src/app/input/mod.rs
-index 45124107c901df2a7ef90aa8e5efcab9b712018e..269ebb16b79f2616b203fc1df0217e92ea6fb8fa 100644
+index 597d9296734c17413c4003f54266f29bdbf89e07..07ec7d9450895cbbe33a2a216d3a80b96a5b0486 100644
 --- a/src/app/input/mod.rs
 +++ b/src/app/input/mod.rs
 @@ -412,6 +412,9 @@ impl App {
@@ -230,10 +230,10 @@ index fb1a7d757c07565658b86d45611fa05470c309fe..7d09ce6eea6a6418c704cbcfd2faa27d
      fn settings_tab_cycle_wraps_after_integrations() {
          let mut state = state_with_workspaces(&["test"]);
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 3524411530e451be561b54b7298c7c86d4f54e88..1b52da8772e6c6c5a60adb730b99568f7b79228f 100644
+index 501f39f607498ba204fb6ee4d66b66c0fd82cf36..625e058e4a3615585c245207d498029dd960a72d 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
-@@ -650,6 +650,7 @@ impl App {
+@@ -653,6 +653,7 @@ impl App {
              pane_scrollbars: config.ui.pane_scrollbars,
              pane_gaps: config.ui.pane_gaps,
              show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
@@ -241,7 +241,7 @@ index 3524411530e451be561b54b7298c7c86d4f54e88..1b52da8772e6c6c5a60adb730b99568f
              hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
              tab_bar_position: config.ui.tab_bar_position,
              tab_bar_right: Vec::new(),
-@@ -1493,6 +1494,7 @@ impl App {
+@@ -1497,6 +1498,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
@@ -249,7 +249,7 @@ index 3524411530e451be561b54b7298c7c86d4f54e88..1b52da8772e6c6c5a60adb730b99568f
                  self.state.hide_tab_bar_when_single_tab = config.ui.hide_tab_bar_when_single_tab;
                  self.state.tab_bar_position = config.ui.tab_bar_position;
                  self.configure_tab_bar_status(
-@@ -2983,7 +2985,7 @@ mod tests {
+@@ -2987,7 +2989,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -258,7 +258,7 @@ index 3524411530e451be561b54b7298c7c86d4f54e88..1b52da8772e6c6c5a60adb730b99568f
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -3033,6 +3035,7 @@ mod tests {
+@@ -3037,6 +3039,7 @@ mod tests {
          assert!(!app.state.redraw_on_focus_gained);
          assert!(!app.state.copy_on_select);
          assert!(app.state.prompt_new_workspace_name);
@@ -266,7 +266,7 @@ index 3524411530e451be561b54b7298c7c86d4f54e88..1b52da8772e6c6c5a60adb730b99568f
          assert!(app.state.selection.is_some());
          assert!(app.state.selection_autoscroll.is_some());
          assert_eq!(app.selection_autoscroll_deadline, Some(selection_deadline));
-@@ -3568,6 +3571,29 @@ mod tests {
+@@ -3572,6 +3575,29 @@ mod tests {
          let _ = std::fs::remove_dir_all(path.parent().unwrap());
      }
  
