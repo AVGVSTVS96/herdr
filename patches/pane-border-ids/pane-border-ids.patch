@@ -1,5 +1,5 @@
 diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
-index aa5b7ed0ea314255efbc9212fa879e029868ba33..65ceaa816b121d39d8b3f9b47557e56d1fa875a8 100644
+index 1765c10fb15e9a19efd9e3a88ea64972a0e5120c..c3e6d31e1d0aaa28a8e684667d84784d62d4e16e 100644
 --- a/docs/next/website/src/data/config-reference.json
 +++ b/docs/next/website/src/data/config-reference.json
 @@ -748,6 +748,12 @@
@@ -230,7 +230,7 @@ index fb1a7d757c07565658b86d45611fa05470c309fe..7d09ce6eea6a6418c704cbcfd2faa27d
      fn settings_tab_cycle_wraps_after_integrations() {
          let mut state = state_with_workspaces(&["test"]);
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 501f39f607498ba204fb6ee4d66b66c0fd82cf36..625e058e4a3615585c245207d498029dd960a72d 100644
+index 85ad4fa35e1ac561bca8668855c24e5c81e8b662..e46bedb48d075807c7e36271fc4e8c3d4cee8b4e 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
 @@ -653,6 +653,7 @@ impl App {
@@ -241,7 +241,7 @@ index 501f39f607498ba204fb6ee4d66b66c0fd82cf36..625e058e4a3615585c245207d498029d
              hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
              tab_bar_position: config.ui.tab_bar_position,
              tab_bar_right: Vec::new(),
-@@ -1497,6 +1498,7 @@ impl App {
+@@ -1499,6 +1500,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
@@ -249,7 +249,7 @@ index 501f39f607498ba204fb6ee4d66b66c0fd82cf36..625e058e4a3615585c245207d498029d
                  self.state.hide_tab_bar_when_single_tab = config.ui.hide_tab_bar_when_single_tab;
                  self.state.tab_bar_position = config.ui.tab_bar_position;
                  self.configure_tab_bar_status(
-@@ -2987,7 +2989,7 @@ mod tests {
+@@ -2989,7 +2991,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -258,7 +258,7 @@ index 501f39f607498ba204fb6ee4d66b66c0fd82cf36..625e058e4a3615585c245207d498029d
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -3037,6 +3039,7 @@ mod tests {
+@@ -3039,6 +3041,7 @@ mod tests {
          assert!(!app.state.redraw_on_focus_gained);
          assert!(!app.state.copy_on_select);
          assert!(app.state.prompt_new_workspace_name);
@@ -266,7 +266,7 @@ index 501f39f607498ba204fb6ee4d66b66c0fd82cf36..625e058e4a3615585c245207d498029d
          assert!(app.state.selection.is_some());
          assert!(app.state.selection_autoscroll.is_some());
          assert_eq!(app.selection_autoscroll_deadline, Some(selection_deadline));
-@@ -3572,6 +3575,29 @@ mod tests {
+@@ -3574,6 +3577,29 @@ mod tests {
          let _ = std::fs::remove_dir_all(path.parent().unwrap());
      }
  
@@ -297,7 +297,7 @@ index 501f39f607498ba204fb6ee4d66b66c0fd82cf36..625e058e4a3615585c245207d498029d
      fn save_status_indicators_persists_then_applies_live_config() {
          let _guard = config_env_lock().lock().unwrap();
 diff --git a/src/app/state.rs b/src/app/state.rs
-index b8205451767435111d8512380bd1d4fc2a04309b..effd3a455cb187fc4308b78f2b08fcca0fcbfd73 100644
+index d9dcfc9dfb529a264543cf075174f5e9431b46d3..9cc9a13f1bff8a5f98ff7672af8633ddc1d18c35 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
 @@ -1487,6 +1487,7 @@ pub struct AppState {
@@ -319,7 +319,7 @@ index b8205451767435111d8512380bd1d4fc2a04309b..effd3a455cb187fc4308b78f2b08fcca
      pub(crate) fn pane_exposes_host_cursor(
          &self,
          _ws_idx: usize,
-@@ -1859,6 +1864,7 @@ impl AppState {
+@@ -1878,6 +1883,7 @@ impl AppState {
              pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
@@ -328,10 +328,10 @@ index b8205451767435111d8512380bd1d4fc2a04309b..effd3a455cb187fc4308b78f2b08fcca
              tab_bar_position: TabBarPositionConfig::Top,
              tab_bar_right: Vec::new(),
 diff --git a/src/config/model.rs b/src/config/model.rs
-index ad779d263b957acd1ed1a80057e3441be56caf39..536edb13ddafcffc30d4be2850bf9ad2a41bc7fd 100644
+index c10cd7330722a14cac0b96a82771f655e111f87b..351e66cf0c45669954bed653befb1a7134f9e303 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
-@@ -883,6 +883,8 @@ pub struct UiConfig {
+@@ -887,6 +887,8 @@ pub struct UiConfig {
      pub pane_gaps: bool,
      /// Show agent labels in split pane borders when no manual pane label is set. Default: false.
      pub show_agent_labels_on_pane_borders: bool,
@@ -340,7 +340,7 @@ index ad779d263b957acd1ed1a80057e3441be56caf39..536edb13ddafcffc30d4be2850bf9ad2
      /// Hide the tab row when the workspace has one tab. Default: false.
      pub hide_tab_bar_when_single_tab: bool,
      /// Desktop tab row placement. Default: top.
-@@ -1117,6 +1119,7 @@ impl Default for UiConfig {
+@@ -1121,6 +1123,7 @@ impl Default for UiConfig {
              pane_scrollbars: true,
              pane_gaps: true,
              show_agent_labels_on_pane_borders: false,
@@ -348,7 +348,7 @@ index ad779d263b957acd1ed1a80057e3441be56caf39..536edb13ddafcffc30d4be2850bf9ad2
              hide_tab_bar_when_single_tab: false,
              tab_bar_position: TabBarPositionConfig::Top,
              tab_bar_right: Vec::new(),
-@@ -1382,6 +1385,7 @@ status_indicators = "symbols"
+@@ -1398,6 +1401,7 @@ status_indicators = "symbols"
          assert!(default_config.ui.pane_scrollbars);
          assert!(default_config.ui.pane_gaps);
          assert!(!default_config.ui.show_agent_labels_on_pane_borders);
@@ -356,7 +356,7 @@ index ad779d263b957acd1ed1a80057e3441be56caf39..536edb13ddafcffc30d4be2850bf9ad2
          assert!(!default_config.ui.hide_tab_bar_when_single_tab);
          assert_eq!(
              default_config.ui.tab_bar_position,
-@@ -1397,6 +1401,7 @@ pane_outer_borders = false
+@@ -1413,6 +1417,7 @@ pane_outer_borders = false
  pane_scrollbars = false
  pane_gaps = true
  show_agent_labels_on_pane_borders = true
@@ -364,7 +364,7 @@ index ad779d263b957acd1ed1a80057e3441be56caf39..536edb13ddafcffc30d4be2850bf9ad2
  hide_tab_bar_when_single_tab = true
  tab_bar_position = "bottom"
  tab_bar_right = [
-@@ -1414,6 +1419,7 @@ tab_bar_right_separator = " · "
+@@ -1430,6 +1435,7 @@ tab_bar_right_separator = " · "
          assert!(!config.ui.pane_scrollbars);
          assert!(config.ui.pane_gaps);
          assert!(config.ui.show_agent_labels_on_pane_borders);
@@ -373,7 +373,7 @@ index ad779d263b957acd1ed1a80057e3441be56caf39..536edb13ddafcffc30d4be2850bf9ad2
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
          assert_eq!(config.ui.tab_bar_right.len(), 5);
 diff --git a/src/main.rs b/src/main.rs
-index d2fc059526eeb5fc0718bae7527d287b57afe9a3..993a928a299c6ecbd45c2944160fac0c994851c7 100644
+index 36b1d021fabec54746a379d6c0ecd7bbdfbc4ec1..b4bd17dd3df6b298006f50cf04cea6f3578f0600 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -335,6 +335,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
