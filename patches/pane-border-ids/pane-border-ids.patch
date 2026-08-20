@@ -373,7 +373,7 @@ index c10cd7330722a14cac0b96a82771f655e111f87b..351e66cf0c45669954bed653befb1a71
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
          assert_eq!(config.ui.tab_bar_right.len(), 5);
 diff --git a/src/main.rs b/src/main.rs
-index 36b1d021fabec54746a379d6c0ecd7bbdfbc4ec1..b4bd17dd3df6b298006f50cf04cea6f3578f0600 100644
+index 56dbb8df2664d6e7be3db8bc51f90785072c9b89..e32016d3a9d1876650b6e7dedcb4e25a8207f249 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -335,6 +335,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
