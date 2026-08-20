@@ -1,23 +1,23 @@
 {
-  "version": "0.8.0",
-  "protocol": 19,
-  "notes": "Patched Herdr build maintained from upstream with:\n\n- an independent Pane Labels setting for full public pane IDs on the right side of pane borders\n- fork-owned stable and preview update feeds for native `herdr update --handoff`\n\nSource: `v0.8.0`",
+  "version": "0.8.2",
+  "protocol": 20,
+  "notes": "Patched Herdr build maintained from upstream with:\n\n- an independent Pane Labels setting for full public pane IDs on the right side of pane borders\n- fork-owned stable and preview update feeds for native `herdr update --handoff`\n\nSource: `v0.8.2`",
   "assets": {
     "linux-x86_64": {
-      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.0/herdr-linux-x86_64",
-      "sha256": "a4427de1a1eaa368624ecd3bd8382415d251ceff443b77fef13cf302fa805493"
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.2/herdr-linux-x86_64",
+      "sha256": "85aea8d78d697d80ab1cc0d7e9f3e32d6558c2eed1ce3c5eb652b37e85de896f"
     },
     "linux-aarch64": {
-      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.0/herdr-linux-aarch64",
-      "sha256": "7675831fc62324c7a6f0a4e7c7819116db860d3b724224a2658e3b31bb98343b"
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.2/herdr-linux-aarch64",
+      "sha256": "e680ee33f7b4d590413af2510c01609a5b8c7889341efffd5319ce5f0e0c7c72"
     },
     "macos-x86_64": {
-      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.0/herdr-macos-x86_64",
-      "sha256": "fc143b9e1401acb14db1b9c586fd65ea87782fcfd30f4a81f7f8fa89e21168a9"
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.2/herdr-macos-x86_64",
+      "sha256": "7d45e6add3f872eb648bbf495d9f9e9d915a342dae68a444430ba5156533d65d"
     },
     "macos-aarch64": {
-      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.0/herdr-macos-aarch64",
-      "sha256": "ab82219748c30648824e4acd2240add3a4dae865fb49efe560fb63aa4fbe05a9"
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.2/herdr-macos-aarch64",
+      "sha256": "6d23b3c72a9ff9bcef7f92ca2b91c4baaded259c1e13746df864e1b4b31cf6cb"
     }
   },
   "releases": {
@@ -62,6 +62,28 @@
         "macos-aarch64": {
           "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.0/herdr-macos-aarch64",
           "sha256": "ab82219748c30648824e4acd2240add3a4dae865fb49efe560fb63aa4fbe05a9"
+        }
+      }
+    },
+    "0.8.2": {
+      "notes": "Patched Herdr build maintained from upstream with:\n\n- an independent Pane Labels setting for full public pane IDs on the right side of pane borders\n- fork-owned stable and preview update feeds for native `herdr update --handoff`\n\nSource: `v0.8.2`",
+      "protocol": 20,
+      "assets": {
+        "linux-x86_64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.2/herdr-linux-x86_64",
+          "sha256": "85aea8d78d697d80ab1cc0d7e9f3e32d6558c2eed1ce3c5eb652b37e85de896f"
+        },
+        "linux-aarch64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.2/herdr-linux-aarch64",
+          "sha256": "e680ee33f7b4d590413af2510c01609a5b8c7889341efffd5319ce5f0e0c7c72"
+        },
+        "macos-x86_64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.2/herdr-macos-x86_64",
+          "sha256": "7d45e6add3f872eb648bbf495d9f9e9d915a342dae68a444430ba5156533d65d"
+        },
+        "macos-aarch64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-v0.8.2/herdr-macos-aarch64",
+          "sha256": "6d23b3c72a9ff9bcef7f92ca2b91c4baaded259c1e13746df864e1b4b31cf6cb"
         }
       }
     }
