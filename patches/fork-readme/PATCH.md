@@ -2,7 +2,7 @@
 format: patch-md/v0.1
 id: fork-readme
 summary: Prepend a fork install banner to the top of the upstream README.
-baseline: 6e8b138d0f7d7d695530657a6d8dc475bd3fba2b
+baseline: d79fd746a96ddb5642939c9727baefce642d78e6
 patch_file: fork-readme.patch
 patch_sha256: 09d31c842a02bf2b75c0724932497e3d907153e1c9716d273c66ae51ab2b0cb7
 ---

@@ -2,9 +2,9 @@
 format: patch-md/v0.1
 id: pane-border-ids
 summary: Show full public pane IDs on the right side of pane borders through a native Pane Labels setting.
-baseline: 6e8b138d0f7d7d695530657a6d8dc475bd3fba2b
+baseline: d79fd746a96ddb5642939c9727baefce642d78e6
 patch_file: pane-border-ids.patch
-patch_sha256: 6b53bc72150b4b5d75cbd917d8fed3d2290dc7e44cbc232775c3c1b57b315af6
+patch_sha256: b9e60ce1b9672a5b4fc4a01b0c782f2402d0844a1349f529c17a7c2328bc9197
 ---
 
 ## Intent

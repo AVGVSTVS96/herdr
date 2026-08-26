@@ -40,7 +40,7 @@ index 9f7445b920a71718a4cbcc13415ace9df930dc93..f9c1fccf4e0101a13f0ca75f3cddc1f9
          let value = match sort {
              crate::app::state::AgentPanelSort::Spaces => {
 diff --git a/src/app/input/mod.rs b/src/app/input/mod.rs
-index 597d9296734c17413c4003f54266f29bdbf89e07..07ec7d9450895cbbe33a2a216d3a80b96a5b0486 100644
+index 10edc0c095a04939a8986dc7e7748a2e0c67fbd3..485e41584eb4179a3d1d9a32c6b867b3bc8eea1a 100644
 --- a/src/app/input/mod.rs
 +++ b/src/app/input/mod.rs
 @@ -412,6 +412,9 @@ impl App {
@@ -230,7 +230,7 @@ index fb1a7d757c07565658b86d45611fa05470c309fe..7d09ce6eea6a6418c704cbcfd2faa27d
      fn settings_tab_cycle_wraps_after_integrations() {
          let mut state = state_with_workspaces(&["test"]);
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index ff286c3f183a06d1b8fa6e7cc607d8d8a84189b8..d6ff704a843e94c4f00ddb27975790fd8ae6aaba 100644
+index c28f62da1e52891caf33761766c9e6d90f043b7b..6f14e21313cbfadce72d4d43cf97bc36b7f550f4 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
 @@ -669,6 +669,7 @@ impl App {
@@ -241,7 +241,7 @@ index ff286c3f183a06d1b8fa6e7cc607d8d8a84189b8..d6ff704a843e94c4f00ddb27975790fd
              hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
              tab_bar_position: config.ui.tab_bar_position,
              tab_bar_right: Vec::new(),
-@@ -1515,6 +1516,7 @@ impl App {
+@@ -1516,6 +1517,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
@@ -249,7 +249,7 @@ index ff286c3f183a06d1b8fa6e7cc607d8d8a84189b8..d6ff704a843e94c4f00ddb27975790fd
                  self.state.hide_tab_bar_when_single_tab = config.ui.hide_tab_bar_when_single_tab;
                  self.state.tab_bar_position = config.ui.tab_bar_position;
                  self.configure_tab_bar_status(
-@@ -3065,7 +3067,7 @@ mod tests {
+@@ -3066,7 +3068,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -258,7 +258,7 @@ index ff286c3f183a06d1b8fa6e7cc607d8d8a84189b8..d6ff704a843e94c4f00ddb27975790fd
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -3115,6 +3117,7 @@ mod tests {
+@@ -3116,6 +3118,7 @@ mod tests {
          assert!(!app.state.redraw_on_focus_gained);
          assert!(!app.state.copy_on_select);
          assert!(app.state.prompt_new_workspace_name);
@@ -266,7 +266,7 @@ index ff286c3f183a06d1b8fa6e7cc607d8d8a84189b8..d6ff704a843e94c4f00ddb27975790fd
          assert!(app.state.selection.is_some());
          assert!(app.state.selection_autoscroll.is_some());
          assert_eq!(app.selection_autoscroll_deadline, Some(selection_deadline));
-@@ -3650,6 +3653,29 @@ mod tests {
+@@ -3651,6 +3654,29 @@ mod tests {
          let _ = std::fs::remove_dir_all(path.parent().unwrap());
      }
  
@@ -297,10 +297,10 @@ index ff286c3f183a06d1b8fa6e7cc607d8d8a84189b8..d6ff704a843e94c4f00ddb27975790fd
      fn save_status_indicators_persists_then_applies_live_config() {
          let _guard = config_env_lock().lock().unwrap();
 diff --git a/src/app/state.rs b/src/app/state.rs
-index 21ee889902b209864716bbd8de238c2470463d18..eb0a44905c0158a4ee944ca7dc53b73a3713da6c 100644
+index 782b8ae5f96a044f9af71eb8026d0365e631c754..6dc916bfca404138ea64e45274d4fbf0a32a5deb 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
-@@ -1549,6 +1549,7 @@ pub struct AppState {
+@@ -1551,6 +1551,7 @@ pub struct AppState {
      pub pane_scrollbars: bool,
      pub pane_gaps: bool,
      pub show_agent_labels_on_pane_borders: bool,
@@ -308,7 +308,7 @@ index 21ee889902b209864716bbd8de238c2470463d18..eb0a44905c0158a4ee944ca7dc53b73a
      pub hide_tab_bar_when_single_tab: bool,
      pub tab_bar_position: TabBarPositionConfig,
      pub tab_bar_right: Vec<TabBarStatusSegment>,
-@@ -1645,6 +1646,10 @@ impl AppState {
+@@ -1647,6 +1648,10 @@ impl AppState {
          self.show_agent_labels_on_pane_borders
      }
  
@@ -319,7 +319,7 @@ index 21ee889902b209864716bbd8de238c2470463d18..eb0a44905c0158a4ee944ca7dc53b73a
      pub(crate) fn pane_exposes_host_cursor(
          &self,
          _ws_idx: usize,
-@@ -1940,6 +1945,7 @@ impl AppState {
+@@ -1943,6 +1948,7 @@ impl AppState {
              pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
