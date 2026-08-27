@@ -1,5 +1,5 @@
 diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
-index 147d705618462594a6a1a16c3d54219e1aca0492..d0ffcf90f8316a87ffc904c153ec6fb63ab01dcd 100644
+index 475c6a07bbe238f5325c8f112cec2ec403fa9294..6e584023f399285d3d32a209547aceda3445ba64 100644
 --- a/docs/next/website/src/data/config-reference.json
 +++ b/docs/next/website/src/data/config-reference.json
 @@ -976,6 +976,12 @@
