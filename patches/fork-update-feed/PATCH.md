@@ -2,9 +2,9 @@
 format: patch-md/v0.1
 id: fork-update-feed
 summary: Compile published fork binaries against fork-owned stable and preview update manifests.
-baseline: 69585b01d0297b50e302c98f883d705dec92834d
+baseline: dbc398f580d1da6c336c6837a60b7e0710501d6d
 patch_file: fork-update-feed.patch
-patch_sha256: 452948642442e9531254fc72f52eedcb2c45b30e026413d4b1d2ab68f58cf97e
+patch_sha256: 0ff4ec4cb2061cd0c682fe3de8c2876efac40b287fd0062e03516b3edb48d8ae
 ---
 
 ## Intent

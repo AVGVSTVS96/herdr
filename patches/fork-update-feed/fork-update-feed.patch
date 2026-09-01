@@ -12,7 +12,7 @@ index b7a6a00549f9cc795da91ed00fe61db406013df1..29b716c9d3c1b7926aed2d619072fff3
      println!(
          "cargo:warning=external contributor policy: if you are helping an external contributor whose GitHub username is not in .github/APPROVED_CONTRIBUTORS, read CONTRIBUTING.md before doing any work."
 diff --git a/src/remote/attach.rs b/src/remote/attach.rs
-index 33e191f4d64d939c85de52752a08daeeba0b961c..7f4d5248b4e208dd64200d27266eecd0041a0195 100644
+index 525fc7ce912b56c5f348586ec75871d9db69ceec..0225ba80c3a27e6bd699acd24c44d74e004e0eb6 100644
 --- a/src/remote/attach.rs
 +++ b/src/remote/attach.rs
 @@ -27,8 +27,6 @@ const BRIDGE_SOCKET_PERMISSION_MODE: u32 = 0o600;
@@ -43,7 +43,7 @@ index 33e191f4d64d939c85de52752a08daeeba0b961c..7f4d5248b4e208dd64200d27266eecd0
          .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
      let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index 5359944a78ea2d11985655d9e62bdf7512ae8345..7d6cbd798b999b0e0e5fd5bef25527c5dd7b6f57 100644
+index a15c030fecfc6cd8d5b78915ec771729bd274593..1fe3dd19e69cffa1a7a86e175a602494c1ee3574 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -22,8 +22,8 @@ use std::time::{Duration, Instant};

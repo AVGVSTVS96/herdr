@@ -1,0 +1,433 @@
+diff --git a/src/client/shell/composition.rs b/src/client/shell/composition.rs
+index 6432f3e114c4ba6b254b49d6d5c101025d43ae79..a19607476c1af8ae945c75ce8c4f68abde42e1a1 100644
+--- a/src/client/shell/composition.rs
++++ b/src/client/shell/composition.rs
+@@ -410,6 +410,8 @@ impl ClientShellState {
+                     overlay,
+                     snapshot,
+                     &self.config.keybinds,
++                    self.config.show_agent_labels_on_pane_borders,
++                    self.config.show_pane_ids_on_pane_borders,
+                     &self.config.palette,
+                 )?;
+                 self.hits.overlay_primary = rendered.primary;
+diff --git a/src/client/shell/config.rs b/src/client/shell/config.rs
+index 0273cefb3385c9219edeae9f413305525da2c9f3..68a65eca005e6da63b60f50248b0369bb9cd1ffe 100644
+--- a/src/client/shell/config.rs
++++ b/src/client/shell/config.rs
+@@ -108,6 +108,8 @@ impl ClientShellConfig {
+             agents: config.ui.sidebar.agents.clone(),
+             agent_panel_sort: config.ui.agent_panel_sort,
+             status_indicators: config.ui.status_indicators,
++            show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
++            show_pane_ids_on_pane_borders: config.ui.show_pane_ids_on_pane_borders,
+             sound_enabled: config.ui.sound.enabled,
+             toast_delivery: config.ui.toast.delivery,
+             toast_delay_seconds: config.ui.toast.delay_seconds,
+@@ -303,6 +305,8 @@ impl ClientShellConfig {
+                 self.agents = ui.sidebar.agents.clone();
+                 self.agent_panel_sort = ui.agent_panel_sort;
+                 self.status_indicators = ui.status_indicators;
++                self.show_agent_labels_on_pane_borders = ui.show_agent_labels_on_pane_borders;
++                self.show_pane_ids_on_pane_borders = ui.show_pane_ids_on_pane_borders;
+                 self.sound_enabled = ui.sound.enabled;
+                 self.toast_delivery = ui.toast.delivery;
+                 self.toast_delay_seconds = ui.toast.delay_seconds;
+@@ -434,6 +438,8 @@ mod tests {
+         next.ui.tab_bar_position = TabBarPositionConfig::Bottom;
+         next.ui.agent_panel_sort = crate::config::AgentPanelSortConfig::Priority;
+         next.ui.status_indicators = crate::config::StatusIndicatorStyle::Symbols;
++        next.ui.show_agent_labels_on_pane_borders = true;
++        next.ui.show_pane_ids_on_pane_borders = true;
+         next.ui.sidebar.agents.row_gap = 2;
+         next.keys.prefix = "ctrl+a".to_owned();
+ 
+@@ -450,6 +456,8 @@ mod tests {
+             shell.status_indicators,
+             crate::config::StatusIndicatorStyle::Symbols
+         );
++        assert!(shell.show_agent_labels_on_pane_borders);
++        assert!(shell.show_pane_ids_on_pane_borders);
+         assert_eq!(shell.agents.row_gap, 2);
+         assert_eq!(
+             shell.keybinds.prefix,
+diff --git a/src/client/shell/mouse.rs b/src/client/shell/mouse.rs
+index 437ec4ed1880478d037ec57c4e8fc16b739b5670..267eea44e024cc2fc4216aac63dac94f3a1e5c82 100644
+--- a/src/client/shell/mouse.rs
++++ b/src/client/shell/mouse.rs
+@@ -1434,7 +1434,8 @@ impl ClientShellState {
+                         Some(ClientShellOverlay::Settings(ClientSettingsOverlay {
+                             section: ClientSettingsSection::Indicators
+                                 | ClientSettingsSection::Sound
+-                                | ClientSettingsSection::Toast,
++                                | ClientSettingsSection::Toast
++                                | ClientSettingsSection::PaneLabels,
+                             ..
+                         }))
+                     );
+diff --git a/src/client/shell/overlays.rs b/src/client/shell/overlays.rs
+index 30ac78b9e1b5cc6e3d33fe4f343c39fc4fda2715..342ee873a53e509f650922d8878b608349049398 100644
+--- a/src/client/shell/overlays.rs
++++ b/src/client/shell/overlays.rs
+@@ -34,6 +34,8 @@ pub(crate) fn render_client_overlay(
+     o: &ClientShellOverlay,
+     s: &ClientShellSnapshot,
+     k: &LiveKeybindConfig,
++    show_agent_labels_on_pane_borders: bool,
++    show_pane_ids_on_pane_borders: bool,
+     p: &Palette,
+ ) -> Option<OverlayRender> {
+     if !matches!(
+@@ -59,9 +61,14 @@ pub(crate) fn render_client_overlay(
+         ClientShellOverlay::ConfirmClose(v) => render_confirm_close_overlay(b, v, p),
+         ClientShellOverlay::Help(v) => render_help_overlay(b, v, k, p),
+         ClientShellOverlay::Navigator(v) => render_navigator_overlay(b, v, s, p),
+-        ClientShellOverlay::Settings(v) => {
+-            settings_overlay::render_settings_overlay(b, v, s.integration_updates_available, p)
+-        }
++        ClientShellOverlay::Settings(v) => settings_overlay::render_settings_overlay(
++            b,
++            v,
++            s.integration_updates_available,
++            show_agent_labels_on_pane_borders,
++            show_pane_ids_on_pane_borders,
++            p,
++        ),
+         ClientShellOverlay::WorktreeCreate(v) => {
+             worktree_overlays::render_worktree_create_overlay(b, v, p)
+         }
+diff --git a/src/client/shell/settings.rs b/src/client/shell/settings.rs
+index 95a437fece92f33b86e6f1fd86ace086bab428f5..cdaf2b1f74e0dca23410e7c5edc412eeee2f8243 100644
+--- a/src/client/shell/settings.rs
++++ b/src/client/shell/settings.rs
+@@ -51,6 +51,7 @@ impl ClientShellState {
+             ClientSettingsSection::Indicators => indicator_index(self.config.status_indicators),
+             ClientSettingsSection::Sound => usize::from(!self.config.sound_enabled),
+             ClientSettingsSection::Toast => toast_index(self.config.toast_delivery),
++            ClientSettingsSection::PaneLabels => 0,
+             ClientSettingsSection::Integrations => 0,
+         }
+     }
+@@ -99,6 +100,7 @@ impl ClientShellState {
+                 ClientSettingsSection::Theme => crate::config::THEME_NAMES.len(),
+                 ClientSettingsSection::Indicators | ClientSettingsSection::Sound => 2,
+                 ClientSettingsSection::Toast => 4,
++                ClientSettingsSection::PaneLabels => 2,
+                 ClientSettingsSection::Integrations => settings.integrations.len(),
+             },
+             _ => 0,
+@@ -222,6 +224,18 @@ impl ClientShellState {
+                     outcome,
+                 );
+             }
++            ClientSettingsSection::PaneLabels => {
++                let edit = if selected == 0 {
++                    crate::config::ConfigEdit::AgentBorderLabels(
++                        !self.config.show_agent_labels_on_pane_borders,
++                    )
++                } else {
++                    crate::config::ConfigEdit::PaneBorderIds(
++                        !self.config.show_pane_ids_on_pane_borders,
++                    )
++                };
++                self.save_settings_edit(edit, outcome);
++            }
+             ClientSettingsSection::Integrations => self.install_recommended_integrations(outcome),
+         }
+     }
+diff --git a/src/client/shell/settings_overlay.rs b/src/client/shell/settings_overlay.rs
+index ea59ad02971ecd3d75215c82233ad5e2bf3e6b24..f2ba0071a68e7857eb6e03aaf89d6ff767ee0bf8 100644
+--- a/src/client/shell/settings_overlay.rs
++++ b/src/client/shell/settings_overlay.rs
+@@ -37,6 +37,8 @@ pub(super) fn render_settings_overlay(
+     buffer: &mut Buffer,
+     settings: &ClientSettingsOverlay,
+     integration_updates_available: bool,
++    show_agent_labels_on_pane_borders: bool,
++    show_pane_ids_on_pane_borders: bool,
+     palette: &Palette,
+ ) -> Option<OverlayRender> {
+     let integration_height = 14u16
+@@ -194,6 +196,17 @@ pub(super) fn render_settings_overlay(
+                 &mut choice_hits,
+             );
+         }
++        ClientSettingsSection::PaneLabels => {
++            render_pane_labels(
++                buffer,
++                content,
++                settings.selected,
++                show_agent_labels_on_pane_borders,
++                show_pane_ids_on_pane_borders,
++                palette,
++                &mut choice_hits,
++            );
++        }
+         ClientSettingsSection::Integrations => {
+             render_integrations(buffer, content, settings, palette);
+         }
+@@ -253,6 +266,75 @@ pub(super) fn render_settings_overlay(
+     })
+ }
+ 
++fn render_pane_labels(
++    buffer: &mut Buffer,
++    area: Rect,
++    selected: usize,
++    show_agent_labels: bool,
++    show_pane_ids: bool,
++    palette: &Palette,
++    hits: &mut Vec<(Rect, usize)>,
++) {
++    put_text(
++        buffer,
++        area.x,
++        area.y,
++        area.width,
++        "pane labels",
++        Style::default()
++            .fg(palette.text)
++            .bg(palette.panel_bg)
++            .add_modifier(Modifier::BOLD),
++    );
++    put_text(
++        buffer,
++        area.x,
++        area.y + 1,
++        area.width,
++        "choose what appears in split pane borders",
++        Style::default().fg(palette.overlay1).bg(palette.panel_bg),
++    );
++
++    let rows = [
++        (
++            "agent labels",
++            "show detected agent names on the left",
++            show_agent_labels,
++        ),
++        (
++            "pane ids",
++            "show full pane IDs like w1:p2 on the right",
++            show_pane_ids,
++        ),
++    ];
++    for (index, (label, description, enabled)) in rows.into_iter().enumerate() {
++        let y = area.y + 3 + index as u16;
++        if y >= area.bottom() {
++            break;
++        }
++        let rect = Rect::new(area.x, y, area.width, 1);
++        let style = if index == selected {
++            Style::default()
++                .fg(contrast(palette))
++                .bg(palette.accent)
++                .add_modifier(Modifier::BOLD)
++        } else {
++            Style::default().fg(palette.text).bg(palette.panel_bg)
++        };
++        buffer.set_style(rect, style);
++        let marker = if enabled { "[✓]" } else { "[ ]" };
++        put_text(
++            buffer,
++            rect.x,
++            rect.y,
++            rect.width,
++            &format!(" {label:<13} {marker}  {description}"),
++            style,
++        );
++        hits.push((rect, index));
++    }
++}
++
+ fn render_choice_section(
+     buffer: &mut Buffer,
+     area: Rect,
+diff --git a/src/client/shell/state.rs b/src/client/shell/state.rs
+index 81173c18a16c9dfd704b2e922b7fc289e58fc35e..6cfd3e56206bd2bbec5264489320ddc3d0544598 100644
+--- a/src/client/shell/state.rs
++++ b/src/client/shell/state.rs
+@@ -24,6 +24,8 @@ pub(crate) struct ClientShellConfig {
+     pub(super) agents: crate::config::AgentsSidebarConfig,
+     pub(super) agent_panel_sort: crate::config::AgentPanelSortConfig,
+     pub(super) status_indicators: crate::config::StatusIndicatorStyle,
++    pub(super) show_agent_labels_on_pane_borders: bool,
++    pub(super) show_pane_ids_on_pane_borders: bool,
+     pub(super) sound_enabled: bool,
+     pub(super) toast_delivery: crate::config::ToastDelivery,
+     pub(super) toast_delay_seconds: u64,
+@@ -354,6 +356,7 @@ pub(super) enum ClientSettingsSection {
+     Indicators,
+     Sound,
+     Toast,
++    PaneLabels,
+     Integrations,
+ }
+ 
+@@ -363,6 +366,7 @@ impl ClientSettingsSection {
+         Self::Indicators,
+         Self::Sound,
+         Self::Toast,
++        Self::PaneLabels,
+         Self::Integrations,
+     ];
+ 
+@@ -372,6 +376,7 @@ impl ClientSettingsSection {
+             Self::Indicators => "indicators",
+             Self::Sound => "sound",
+             Self::Toast => "toasts",
++            Self::PaneLabels => "pane labels",
+             Self::Integrations => "integrations",
+         }
+     }
+diff --git a/src/client/shell/tests/startup_overlays.rs b/src/client/shell/tests/startup_overlays.rs
+index 40ba0bd686b872d46791647263890ded24405ff0..67b3ac315a057deed8671f20e894978f2c916d46 100644
+--- a/src/client/shell/tests/startup_overlays.rs
++++ b/src/client/shell/tests/startup_overlays.rs
+@@ -1139,7 +1139,7 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
+ 
+     state.open_settings_overlay();
+     state.compose(106, 30).expect("settings overlay");
+-    for _ in 0..3 {
++    for _ in 0..4 {
+         let next = state.handle_input_bytes(b"\t");
+         assert!(next.actions.is_empty());
+     }
+@@ -1191,7 +1191,7 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
+         .join("\n");
+     assert!(text.contains("update available"));
+     assert!(text.contains("not found"));
+-    assert!(!text.contains("pane labels"));
++    assert!(!text.contains("choose what appears in split pane borders"));
+ 
+     let popup = state.hits.settings_popup;
+     let blank_click =
+@@ -1257,3 +1257,72 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
+         })) if integration_messages == &["installed codex"]
+     ));
+ }
++
++#[test]
++fn pane_label_settings_render_and_toggle_independently_with_keyboard_and_mouse() {
++    let _guard = crate::config::test_config_env_lock().lock().unwrap();
++    let path = std::env::temp_dir().join(format!(
++        "herdr-pane-label-settings-{}-{}.toml",
++        std::process::id(),
++        std::time::SystemTime::now()
++            .duration_since(std::time::UNIX_EPOCH)
++            .unwrap()
++            .as_nanos()
++    ));
++    std::fs::write(&path, "onboarding = false\n").unwrap();
++    std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
++
++    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
++    state.set_snapshot(Box::new(snapshot()));
++    state.set_pane_surface(surface());
++    state.open_settings_overlay();
++    state.select_settings_section(
++        ClientSettingsSection::PaneLabels,
++        &mut ClientShellInput::default(),
++    );
++
++    let frame = state.compose(106, 30).expect("pane label settings");
++    let text = frame
++        .cells
++        .chunks(frame.width as usize)
++        .map(|row| {
++            row.iter()
++                .map(|cell| cell.symbol.as_str())
++                .collect::<String>()
++        })
++        .collect::<Vec<_>>()
++        .join("\n");
++    assert!(text.contains("agent labels  [ ]"));
++    assert!(text.contains("pane ids      [ ]"));
++
++    let agent_toggle = state.handle_input_bytes(b"\r");
++    assert!(agent_toggle.repaint);
++    assert!(state.config.show_agent_labels_on_pane_borders);
++    assert!(!state.config.show_pane_ids_on_pane_borders);
++
++    state.handle_input_bytes(b"j");
++    let pane_id_toggle = state.handle_input_bytes(b" ");
++    assert!(pane_id_toggle.repaint);
++    assert!(state.config.show_agent_labels_on_pane_borders);
++    assert!(state.config.show_pane_ids_on_pane_borders);
++
++    state.compose(106, 30).expect("updated pane label settings");
++    let agent_row = state.hits.settings_choices[0].0;
++    let mouse_toggle =
++        state.handle_raw_events(vec![RawInputEvent::Mouse(crossterm::event::MouseEvent {
++            kind: MouseEventKind::Down(MouseButton::Left),
++            column: agent_row.x + 1,
++            row: agent_row.y,
++            modifiers: KeyModifiers::empty(),
++        })]);
++    assert!(mouse_toggle.repaint);
++    assert!(!state.config.show_agent_labels_on_pane_borders);
++    assert!(state.config.show_pane_ids_on_pane_borders);
++
++    let content = std::fs::read_to_string(&path).unwrap();
++    assert!(content.contains("show_agent_labels_on_pane_borders = false"));
++    assert!(content.contains("show_pane_ids_on_pane_borders = true"));
++
++    std::env::remove_var(crate::config::CONFIG_PATH_ENV_VAR);
++    let _ = std::fs::remove_file(path);
++}
+diff --git a/src/config/write.rs b/src/config/write.rs
+index 752445831f0056ddc10b9d9d1b2b92d5eab29616..7e5edf699243783279a0e0f9dab495f9164891ec 100644
+--- a/src/config/write.rs
++++ b/src/config/write.rs
+@@ -4,6 +4,8 @@ pub(crate) enum ConfigEdit<'a> {
+     StatusIndicators(super::StatusIndicatorStyle),
+     Sound(bool),
+     ToastDelivery(super::ToastDelivery),
++    AgentBorderLabels(bool),
++    PaneBorderIds(bool),
+ }
+ 
+ impl ConfigEdit<'_> {
+@@ -13,6 +15,8 @@ impl ConfigEdit<'_> {
+             Self::StatusIndicators(_) => "status indicators",
+             Self::Sound(_) => "sound setting",
+             Self::ToastDelivery(_) => "toast setting",
++            Self::AgentBorderLabels(_) => "agent border labels",
++            Self::PaneBorderIds(_) => "pane border ids",
+         }
+     }
+ 
+@@ -42,6 +46,15 @@ impl ConfigEdit<'_> {
+                 let content = super::upsert_section_value(content, "ui.toast", "delivery", value);
+                 super::remove_section_key(&content, "ui.toast", "enabled")
+             }
++            Self::AgentBorderLabels(enabled) => super::upsert_section_bool(
++                content,
++                "ui",
++                "show_agent_labels_on_pane_borders",
++                enabled,
++            ),
++            Self::PaneBorderIds(enabled) => {
++                super::upsert_section_bool(content, "ui", "show_pane_ids_on_pane_borders", enabled)
++            }
+         }
+     }
+ }
+@@ -73,3 +86,18 @@ pub(crate) fn write_edit(edit: ConfigEdit<'_>) -> Result<(), String> {
+         edit.apply(content)
+     })
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn pane_label_edits_persist_independent_ui_keys() {
++        let content = ConfigEdit::AgentBorderLabels(true).apply("");
++        let content = ConfigEdit::PaneBorderIds(true).apply(&content);
++        let content = ConfigEdit::AgentBorderLabels(false).apply(&content);
++
++        assert!(content.contains("show_agent_labels_on_pane_borders = false"));
++        assert!(content.contains("show_pane_ids_on_pane_borders = true"));
++    }
++}
