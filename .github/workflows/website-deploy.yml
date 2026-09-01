@@ -9,13 +9,7 @@ on:
       - "docs/preview/**"
       - "docs/versions/**"
       - "src/detect/manifests/**"
-      - "website/agent-detection/**"
-      - "website/agent-guide.md"
-      - "website/install.cmd"
-      - "website/install.ps1"
-      - "website/install.sh"
-      - "website/latest.json"
-      - "website/preview.json"
+      - "distribution/**"
 
 permissions:
   contents: read
