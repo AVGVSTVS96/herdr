@@ -1,5 +1,5 @@
 diff --git a/build.rs b/build.rs
-index b7a6a00549f9cc795da91ed00fe61db406013df1..29b716c9d3c1b7926aed2d619072fff337095589 100644
+index 7a2ac11feb4a7a3caa399a38977a540673cbdaca..82f82a7b21ca911797e134c10c06728685793213 100644
 --- a/build.rs
 +++ b/build.rs
 @@ -44,6 +44,8 @@ fn main() {
@@ -12,7 +12,7 @@ index b7a6a00549f9cc795da91ed00fe61db406013df1..29b716c9d3c1b7926aed2d619072fff3
      println!(
          "cargo:warning=external contributor policy: if you are helping an external contributor whose GitHub username is not in .github/APPROVED_CONTRIBUTORS, read CONTRIBUTING.md before doing any work."
 diff --git a/src/remote/attach.rs b/src/remote/attach.rs
-index 525fc7ce912b56c5f348586ec75871d9db69ceec..0225ba80c3a27e6bd699acd24c44d74e004e0eb6 100644
+index 641aad00728d40d7220d33df6b73fba8aceba8a3..b1f980e7bc4a571007b59e076ceb0ff408fa414a 100644
 --- a/src/remote/attach.rs
 +++ b/src/remote/attach.rs
 @@ -27,8 +27,6 @@ const BRIDGE_SOCKET_PERMISSION_MODE: u32 = 0o600;
@@ -43,7 +43,7 @@ index 525fc7ce912b56c5f348586ec75871d9db69ceec..0225ba80c3a27e6bd699acd24c44d74e
          .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
      let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index a15c030fecfc6cd8d5b78915ec771729bd274593..1fe3dd19e69cffa1a7a86e175a602494c1ee3574 100644
+index 879726fc091b07b40dd62003ed37d5fd757bbd9d..82f8385a457cff1c1571926cda58664b52ffb006 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -22,8 +22,8 @@ use std::time::{Duration, Instant};
@@ -57,7 +57,7 @@ index a15c030fecfc6cd8d5b78915ec771729bd274593..1fe3dd19e69cffa1a7a86e175a602494
  const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/herdr.json";
  const HERDR_UPDATE_COMMAND: &str = "herdr update";
  const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade herdr";
-@@ -320,11 +320,31 @@ impl ReleaseInfo {
+@@ -326,11 +326,31 @@ impl ReleaseInfo {
  }
  
  fn fetch_update_manifest() -> Result<UpdateManifest, String> {
@@ -91,7 +91,7 @@ index a15c030fecfc6cd8d5b78915ec771729bd274593..1fe3dd19e69cffa1a7a86e175a602494
  }
  
  fn fetch_json_manifest<T>(url: &str) -> Result<T, String>
-@@ -2366,6 +2386,28 @@ mod tests {
+@@ -2408,6 +2428,28 @@ mod tests {
      use std::sync::{Mutex, OnceLock};
      use std::thread;
  

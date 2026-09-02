@@ -1,8 +1,8 @@
 diff --git a/src/client/shell/composition.rs b/src/client/shell/composition.rs
-index 6432f3e114c4ba6b254b49d6d5c101025d43ae79..a19607476c1af8ae945c75ce8c4f68abde42e1a1 100644
+index 04ca995c4dde3f240670df774aa09acfa390a105..6b4fc04f6777cb549d3e0266c29682f5d8759ee5 100644
 --- a/src/client/shell/composition.rs
 +++ b/src/client/shell/composition.rs
-@@ -410,6 +410,8 @@ impl ClientShellState {
+@@ -431,6 +431,8 @@ impl ClientShellState {
                      overlay,
                      snapshot,
                      &self.config.keybinds,
@@ -12,7 +12,7 @@ index 6432f3e114c4ba6b254b49d6d5c101025d43ae79..a19607476c1af8ae945c75ce8c4f68ab
                  )?;
                  self.hits.overlay_primary = rendered.primary;
 diff --git a/src/client/shell/config.rs b/src/client/shell/config.rs
-index 0273cefb3385c9219edeae9f413305525da2c9f3..68a65eca005e6da63b60f50248b0369bb9cd1ffe 100644
+index 1c2993b7b10f576f40771af44c4e8c104f957fe4..28cf9c7c073251784a9fa149b87de3868068d71b 100644
 --- a/src/client/shell/config.rs
 +++ b/src/client/shell/config.rs
 @@ -108,6 +108,8 @@ impl ClientShellConfig {
@@ -24,7 +24,7 @@ index 0273cefb3385c9219edeae9f413305525da2c9f3..68a65eca005e6da63b60f50248b0369b
              sound_enabled: config.ui.sound.enabled,
              toast_delivery: config.ui.toast.delivery,
              toast_delay_seconds: config.ui.toast.delay_seconds,
-@@ -303,6 +305,8 @@ impl ClientShellConfig {
+@@ -310,6 +312,8 @@ impl ClientShellConfig {
                  self.agents = ui.sidebar.agents.clone();
                  self.agent_panel_sort = ui.agent_panel_sort;
                  self.status_indicators = ui.status_indicators;
@@ -33,7 +33,7 @@ index 0273cefb3385c9219edeae9f413305525da2c9f3..68a65eca005e6da63b60f50248b0369b
                  self.sound_enabled = ui.sound.enabled;
                  self.toast_delivery = ui.toast.delivery;
                  self.toast_delay_seconds = ui.toast.delay_seconds;
-@@ -434,6 +438,8 @@ mod tests {
+@@ -441,6 +445,8 @@ mod tests {
          next.ui.tab_bar_position = TabBarPositionConfig::Bottom;
          next.ui.agent_panel_sort = crate::config::AgentPanelSortConfig::Priority;
          next.ui.status_indicators = crate::config::StatusIndicatorStyle::Symbols;
@@ -42,7 +42,7 @@ index 0273cefb3385c9219edeae9f413305525da2c9f3..68a65eca005e6da63b60f50248b0369b
          next.ui.sidebar.agents.row_gap = 2;
          next.keys.prefix = "ctrl+a".to_owned();
  
-@@ -450,6 +456,8 @@ mod tests {
+@@ -457,6 +463,8 @@ mod tests {
              shell.status_indicators,
              crate::config::StatusIndicatorStyle::Symbols
          );
@@ -52,10 +52,10 @@ index 0273cefb3385c9219edeae9f413305525da2c9f3..68a65eca005e6da63b60f50248b0369b
          assert_eq!(
              shell.keybinds.prefix,
 diff --git a/src/client/shell/mouse.rs b/src/client/shell/mouse.rs
-index 437ec4ed1880478d037ec57c4e8fc16b739b5670..267eea44e024cc2fc4216aac63dac94f3a1e5c82 100644
+index 612319e236048106ef153d7f3f2734fba7f17c98..b7fcb3a0ea3b7bd37921ebbb51dcb508655491ca 100644
 --- a/src/client/shell/mouse.rs
 +++ b/src/client/shell/mouse.rs
-@@ -1434,7 +1434,8 @@ impl ClientShellState {
+@@ -1447,7 +1447,8 @@ impl ClientShellState {
                          Some(ClientShellOverlay::Settings(ClientSettingsOverlay {
                              section: ClientSettingsSection::Indicators
                                  | ClientSettingsSection::Sound
@@ -97,7 +97,7 @@ index 30ac78b9e1b5cc6e3d33fe4f343c39fc4fda2715..342ee873a53e509f650922d8878b6083
              worktree_overlays::render_worktree_create_overlay(b, v, p)
          }
 diff --git a/src/client/shell/settings.rs b/src/client/shell/settings.rs
-index 95a437fece92f33b86e6f1fd86ace086bab428f5..cdaf2b1f74e0dca23410e7c5edc412eeee2f8243 100644
+index d90d371f617a83f4cc4685011a1418485df49b48..08a5b540cb7361dd38ac251066db2a8b346a36b4 100644
 --- a/src/client/shell/settings.rs
 +++ b/src/client/shell/settings.rs
 @@ -51,6 +51,7 @@ impl ClientShellState {
@@ -243,7 +243,7 @@ index ea59ad02971ecd3d75215c82233ad5e2bf3e6b24..f2ba0071a68e7857eb6e03aaf89d6ff7
      buffer: &mut Buffer,
      area: Rect,
 diff --git a/src/client/shell/state.rs b/src/client/shell/state.rs
-index 81173c18a16c9dfd704b2e922b7fc289e58fc35e..6cfd3e56206bd2bbec5264489320ddc3d0544598 100644
+index 69e77dc56edd09b94afb4714ec71b96fa1a2269a..9615bd736fbdf96df3cfa9da1cfe5c253a6df426 100644
 --- a/src/client/shell/state.rs
 +++ b/src/client/shell/state.rs
 @@ -24,6 +24,8 @@ pub(crate) struct ClientShellConfig {
@@ -280,10 +280,10 @@ index 81173c18a16c9dfd704b2e922b7fc289e58fc35e..6cfd3e56206bd2bbec5264489320ddc3
          }
      }
 diff --git a/src/client/shell/tests/startup_overlays.rs b/src/client/shell/tests/startup_overlays.rs
-index 40ba0bd686b872d46791647263890ded24405ff0..67b3ac315a057deed8671f20e894978f2c916d46 100644
+index 2e2901e8d4933d1d4b393a35f7b47f31602292ea..43fa14a2b0334b5d5a3c18f3c2ca3e3951f21584 100644
 --- a/src/client/shell/tests/startup_overlays.rs
 +++ b/src/client/shell/tests/startup_overlays.rs
-@@ -1139,7 +1139,7 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
+@@ -1175,7 +1175,7 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
  
      state.open_settings_overlay();
      state.compose(106, 30).expect("settings overlay");
@@ -292,7 +292,7 @@ index 40ba0bd686b872d46791647263890ded24405ff0..67b3ac315a057deed8671f20e894978f
          let next = state.handle_input_bytes(b"\t");
          assert!(next.actions.is_empty());
      }
-@@ -1191,7 +1191,7 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
+@@ -1227,7 +1227,7 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
          .join("\n");
      assert!(text.contains("update available"));
      assert!(text.contains("not found"));
@@ -301,7 +301,7 @@ index 40ba0bd686b872d46791647263890ded24405ff0..67b3ac315a057deed8671f20e894978f
  
      let popup = state.hits.settings_popup;
      let blank_click =
-@@ -1257,3 +1257,72 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
+@@ -1293,3 +1293,72 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
          })) if integration_messages == &["installed codex"]
      ));
  }

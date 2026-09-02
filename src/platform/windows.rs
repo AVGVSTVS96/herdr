@@ -2586,27 +2586,27 @@ mod tests {
     #[test]
     fn windows_conpty_native_encoder_uses_canonical_phase_and_repeat_count() {
         let key = crate::input::TerminalKey::new(
-            crossterm::event::KeyCode::Esc,
-            crossterm::event::KeyModifiers::empty(),
+            crossterm::event::KeyCode::Char('7'),
+            crossterm::event::KeyModifiers::CONTROL,
         )
         .with_windows_record(crate::input::WindowsKeyRecord {
             key_down: true,
             repeat_count: 3,
-            virtual_key_code: 27,
-            virtual_scan_code: 1,
-            unicode: 27,
-            control_key_state: 0,
+            virtual_key_code: 0x37,
+            virtual_scan_code: 0x08,
+            unicode: 0,
+            control_key_state: 0x0008,
         });
 
         assert_eq!(
             super::encode_windows_conpty_fallback(&key),
-            Some(b"\x1b[27;1;27;1;0;3_".to_vec())
+            Some(b"\x1b[55;8;0;1;8;3_".to_vec())
         );
         let mut release = key.with_kind(crossterm::event::KeyEventKind::Release);
         release.repeat_count = 3;
         assert_eq!(
             super::encode_windows_conpty_fallback(&release),
-            Some(b"\x1b[27;1;27;0;0;1_".to_vec())
+            Some(b"\x1b[55;8;0;0;8;1_".to_vec())
         );
     }
 
@@ -2827,9 +2827,10 @@ mod tests {
             fs::write(
                 capture,
                 format!(
-                    "{}\n{}",
+                    "{}\n{}\n{}",
                     cwd.display(),
-                    super::current_process_is_detached_server_daemon()
+                    unsafe { GetConsoleWindow() }.is_null(),
+                    !super::current_job_kills_processes_on_close().expect("inspect WMI daemon job")
                 ),
             )
             .expect("write WMI daemon test capture");
@@ -2860,7 +2861,7 @@ mod tests {
             .expect("launch detached process through WMI");
         assert_ne!(pid, 0, "WMI returned an invalid process id");
 
-        let expected = format!("{}\ntrue", base.display());
+        let expected = format!("{}\ntrue\ntrue", base.display());
         let deadline = Instant::now() + Duration::from_secs(10);
         loop {
             if fs::read_to_string(&capture).is_ok_and(|captured| captured == expected) {

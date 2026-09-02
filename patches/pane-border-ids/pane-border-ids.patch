@@ -53,7 +53,7 @@ index 90ee33b8a9552a43c160fc0930721a8ffbc6be1a..f5de00cbedd5fc30aa8ca6216d096e65
          assert_eq!(report.status, crate::config::ConfigReloadStatus::Applied);
          assert!(app.state.request_client_config_reload);
 diff --git a/src/app/state.rs b/src/app/state.rs
-index 0ce9fb6dda66bdba1f6d558f713db2539ec83e4e..dca23d5c4aa99ce78325d7549bcb4be2a5b151c2 100644
+index 3d3700b2bd07311ecb03513a99de69bbd4d52b3a..563524710d0033459871a5c22d0624f9d217bf5e 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
 @@ -836,6 +836,7 @@ pub struct AppState {
@@ -64,7 +64,7 @@ index 0ce9fb6dda66bdba1f6d558f713db2539ec83e4e..dca23d5c4aa99ce78325d7549bcb4be2
      pub tab_bar_right: Vec<TabBarStatusSegment>,
      pub tab_bar_right_separator: String,
      /// Expose the focused pane's cursor anchor to the outer terminal even when
-@@ -1102,6 +1103,7 @@ impl AppState {
+@@ -1063,6 +1064,7 @@ impl AppState {
              pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
@@ -132,7 +132,7 @@ index 91a6b2e49c670593de78a614b20bfba89c611b93..cd2d875428ccd23c0539aefc42d4099e
  # New tabs can still be created with the configured keybinding.
  # hide_tab_bar_when_single_tab = false
 diff --git a/src/ui/panes.rs b/src/ui/panes.rs
-index cd5ea34c9a6d81e66b3fbc5d9979f3f94afe93a0..042b61b61e22d478945709057150cfe9a2c2fcdc 100644
+index e31ee0adeb9840939eb0737153cec091ed4f8769..b5e4315fcdd540dc2948adf70956edb67deaad52 100644
 --- a/src/ui/panes.rs
 +++ b/src/ui/panes.rs
 @@ -7,7 +7,6 @@ use ratatui::{
@@ -187,7 +187,7 @@ index cd5ea34c9a6d81e66b3fbc5d9979f3f94afe93a0..042b61b61e22d478945709057150cfe9
  }
  
  // Full view computation reaches this helper for active and background panes.
-@@ -582,47 +604,62 @@ fn render_pane_border_titles(
+@@ -628,47 +650,62 @@ fn render_pane_border_titles(
      let buf = frame.buffer_mut();
      let area = buf.area;
      for info in pane_infos {
@@ -276,7 +276,7 @@ index cd5ea34c9a6d81e66b3fbc5d9979f3f94afe93a0..042b61b61e22d478945709057150cfe9
      }
  }
  
-@@ -785,33 +822,90 @@ mod tests {
+@@ -831,33 +868,90 @@ mod tests {
      }
  
      #[test]
@@ -382,7 +382,7 @@ index cd5ea34c9a6d81e66b3fbc5d9979f3f94afe93a0..042b61b61e22d478945709057150cfe9
      }
  
      #[test]
-@@ -846,6 +940,147 @@ mod tests {
+@@ -892,6 +986,147 @@ mod tests {
          assert_eq!(buffer[(6, 0)].symbol(), "块");
      }
  

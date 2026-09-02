@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "protocol": 21,
+  "protocol": 22,
   "schema_version": 1,
   "schemas": {
     "error_response": {
@@ -10477,6 +10477,15 @@
             "detached_server_daemon": {
               "default": false,
               "type": "boolean"
+            },
+            "endpoint_protocol_generation": {
+              "description": "Stable client-owned endpoint generation supported by this server.",
+              "format": "uint32",
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
             },
             "live_handoff": {
               "type": "boolean"
