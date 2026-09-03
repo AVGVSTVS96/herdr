@@ -1578,6 +1578,108 @@ async fn repeated_layout_action_reapplies_controller_geometry() {
 }
 
 #[tokio::test]
+async fn public_close_reapplies_controller_geometry() {
+    let mut server = test_headless_server();
+    let mut workspace = crate::workspace::Workspace::test_new("public-close-geometry");
+    let first_pane = workspace.tabs[0].root_pane;
+    let second_pane = workspace.test_split(ratatui::layout::Direction::Vertical);
+    workspace.insert_test_runtime(
+        first_pane,
+        crate::terminal::TerminalRuntime::test_with_screen_bytes(80, 24, b""),
+    );
+    workspace.insert_test_runtime(
+        second_pane,
+        crate::terminal::TerminalRuntime::test_with_screen_bytes(80, 24, b""),
+    );
+    server.app.state.workspaces = vec![workspace];
+    server.app.state.active = Some(0);
+    server.app.state.selected = 0;
+    server.app.state.mode = crate::app::Mode::Terminal;
+    let second_pane_id = server.app.public_pane_id(0, second_pane).unwrap();
+
+    let (control, _) = connect_test_shell(&mut server, 66, 100, 30);
+    let _ = control.recv().expect("snapshot");
+    let shrunk = server.app.state.workspaces[0].test_runtimes[&first_pane].current_size();
+    assert!(shrunk.0 < 30);
+
+    let (respond_to, _response_rx) = std::sync::mpsc::channel();
+    assert!(
+        server.handle_api_request_with_shutdown_check(crate::api::ApiRequestMessage {
+            request: crate::api::schema::Request {
+                id: "public-close-geometry".into(),
+                method: crate::api::schema::Method::PaneClose(crate::api::schema::PaneTarget {
+                    pane_id: second_pane_id,
+                }),
+            },
+            respond_to,
+            response_write_complete: None,
+            stream_active: None,
+        })
+    );
+
+    let runtime = &server.app.state.workspaces[0].test_runtimes[&first_pane];
+    let grown = runtime.current_size();
+    assert!(grown.0 > shrunk.0);
+    assert_eq!(runtime.terminal_dimensions(), Some((grown.1, grown.0)));
+    assert_eq!(
+        runtime.scroll_metrics().unwrap().viewport_rows,
+        grown.0 as usize
+    );
+    shutdown_test_runtimes(&mut server);
+}
+
+#[tokio::test]
+async fn geometry_reapply_replaces_a_controller_that_left_the_tab() {
+    let mut server = test_headless_server();
+    let mut workspace = crate::workspace::Workspace::test_new("geometry-controller-viewer");
+    let first_pane = workspace.tabs[0].root_pane;
+    let second_tab = workspace.test_add_tab(Some("second"));
+    let second_pane = workspace.tabs[second_tab].root_pane;
+    let third_tab = workspace.test_add_tab(Some("third"));
+    let third_pane = workspace.tabs[third_tab].root_pane;
+    for pane_id in [first_pane, second_pane, third_pane] {
+        workspace.insert_test_runtime(
+            pane_id,
+            crate::terminal::TerminalRuntime::test_with_screen_bytes(80, 24, b""),
+        );
+    }
+    server.app.state.workspaces = vec![workspace];
+    server.app.state.active = Some(0);
+    server.app.state.selected = 0;
+    server.app.state.mode = crate::app::Mode::Terminal;
+    let second_tab_id = server.app.public_tab_id(0, second_tab).unwrap();
+    let third_tab_id = server.app.public_tab_id(0, third_tab).unwrap();
+
+    let (first_control, _) = connect_test_shell(&mut server, 67, 100, 30);
+    let (second_control, _) = connect_test_shell(&mut server, 68, 70, 20);
+    let _ = first_control.recv().expect("first snapshot");
+    let _ = second_control.recv().expect("second snapshot");
+
+    assert!(server.focus_shell_client_on_tab(67, &second_tab_id));
+    assert!(server.claim_shell_tab_geometry(67, false));
+    assert!(server.focus_shell_client_on_tab(67, &third_tab_id));
+    assert!(server.claim_shell_tab_geometry(67, false));
+    assert!(server.focus_shell_client_on_tab(68, &second_tab_id));
+    assert_eq!(
+        server.tab_geometry_controllers.get(&second_tab_id),
+        Some(&67)
+    );
+    let stale_size = server.app.state.workspaces[0].test_runtimes[&second_pane].current_size();
+
+    assert!(server.reapply_controlled_shell_tab_geometry(false));
+
+    assert_eq!(
+        server.tab_geometry_controllers.get(&second_tab_id),
+        Some(&68)
+    );
+    assert_ne!(
+        server.app.state.workspaces[0].test_runtimes[&second_pane].current_size(),
+        stale_size
+    );
+    shutdown_test_runtimes(&mut server);
+}
+
+#[tokio::test]
 async fn client_shell_tabs_render_accept_input_and_resize_independently() {
     let mut server = test_headless_server();
     let mut workspace = crate::workspace::Workspace::test_new("independent-geometry");
@@ -3436,8 +3538,8 @@ async fn pane_death_reconciles_each_client_view_and_focus() {
         .public_tab_id(0, second_tab)
         .expect("second tab id");
 
-    let (first_control, _) = connect_matching_test_shell(&mut server, 71);
-    let (second_control, _) = connect_matching_test_shell(&mut server, 72);
+    let (first_control, _) = connect_test_shell(&mut server, 71, 100, 30);
+    let (second_control, _) = connect_test_shell(&mut server, 72, 70, 20);
     let _ = first_control.recv().expect("first snapshot");
     let _ = second_control.recv().expect("second snapshot");
     assert!(server.focus_shell_client_on_tab(72, &second_tab_id));
@@ -3464,11 +3566,65 @@ async fn pane_death_reconciles_each_client_view_and_focus() {
         second_input.try_recv().is_err(),
         "focus gain was duplicated"
     );
+    assert_eq!(
+        server.tab_geometry_controllers.get(&second_tab_id),
+        Some(&71)
+    );
+    let before_resize = server.app.state.workspaces[0].test_runtimes[&second_pane].current_size();
+    assert!(server.handle_server_event(ServerEvent::ClientShellResize {
+        client_id: 71,
+        surface_cols: 90,
+        surface_rows: 25,
+        cell_width_px: 0,
+        cell_height_px: 0,
+        pixel_mouse: false,
+    }));
+    assert_ne!(
+        server.app.state.workspaces[0].test_runtimes[&second_pane].current_size(),
+        before_resize
+    );
+    shutdown_test_runtimes(&mut server);
+}
+
+#[tokio::test]
+async fn pane_death_reapplies_controller_geometry() {
+    let mut server = test_headless_server();
+    let mut workspace = crate::workspace::Workspace::test_new("pane-death-geometry");
+    let first_pane = workspace.tabs[0].root_pane;
+    let dead_pane = workspace.test_split(ratatui::layout::Direction::Vertical);
+    workspace.insert_test_runtime(
+        first_pane,
+        crate::terminal::TerminalRuntime::test_with_screen_bytes(80, 24, b""),
+    );
+    workspace.insert_test_runtime(
+        dead_pane,
+        crate::terminal::TerminalRuntime::test_with_screen_bytes(80, 24, b""),
+    );
+    server.app.state.workspaces = vec![workspace];
+    server.app.state.active = Some(0);
+    server.app.state.selected = 0;
+    server.app.state.mode = crate::app::Mode::Terminal;
+
+    let (control, _) = connect_test_shell(&mut server, 73, 185, 46);
+    let _ = control.recv().expect("snapshot");
+    let shrunk = server.app.state.workspaces[0].test_runtimes[&first_pane].current_size();
+    assert!(shrunk.0 < 46);
+
+    assert!(server.handle_internal_event_with_forwarding(AppEvent::PaneDied { pane_id: dead_pane }));
+
+    let runtime = &server.app.state.workspaces[0].test_runtimes[&first_pane];
+    let grown = runtime.current_size();
+    assert!(grown.0 > shrunk.0);
+    assert_eq!(runtime.terminal_dimensions(), Some((grown.1, grown.0)));
+    assert_eq!(
+        runtime.scroll_metrics().unwrap().viewport_rows,
+        grown.0 as usize
+    );
     shutdown_test_runtimes(&mut server);
 }
 
 #[test]
-fn terminal_attach_client_exits_when_attached_pane_dies() {
+fn terminal_attach_client_exits_when_worktree_runtime_restore_fails() {
     let mut server = test_headless_server();
     let workspace = crate::workspace::Workspace::test_new("attached");
     let pane_id = workspace.tabs[0].root_pane;
@@ -3478,7 +3634,18 @@ fn terminal_attach_client_exits_when_attached_pane_dies() {
         .pane_state(pane_id)
         .expect("pane")
         .attached_terminal_id
-        .to_string();
+        .clone();
+    server
+        .app
+        .state
+        .terminals
+        .get_mut(&terminal_id)
+        .unwrap()
+        .set_detected_state(
+            Some(crate::detect::Agent::Codex),
+            crate::detect::AgentState::Working,
+        );
+    let terminal_id = terminal_id.to_string();
     let (writer, control_rx, _render_rx) = test_client_writer();
 
     assert!(!server.handle_server_event(ServerEvent::ClientConnected {
@@ -3498,13 +3665,138 @@ fn terminal_attach_client_exits_when_attached_pane_dies() {
         })
     );
     assert_eq!(server.terminal_attach_owners.get(&terminal_id), Some(&7));
+    server
+        .app
+        .pending_worktree_remove_runtime_exits
+        .insert(pane_id, 1);
+    server
+        .app
+        .pending_worktree_remove_runtime_restores
+        .insert(pane_id, 7);
 
-    assert!(server.handle_internal_event_with_forwarding(AppEvent::PaneDied { pane_id }));
+    assert!(
+        server.handle_internal_event_with_forwarding(AppEvent::WorktreeRuntimeRestoreFailed {
+            pane_id,
+            operation_id: 7,
+        })
+    );
 
     assert!(!server.clients.contains_key(&7));
     assert!(!server.terminal_attach_owners.contains_key(&terminal_id));
     let reason = read_server_shutdown_reason(control_rx.recv().expect("shutdown message"));
     assert_eq!(reason, Some(format!("terminal {terminal_id} exited")));
+}
+
+#[test]
+fn terminal_attach_client_exits_when_worktree_remove_succeeds() {
+    let mut server = test_headless_server();
+    let checkout = PathBuf::from("/repo/herdr-issue");
+    let parent = crate::workspace::Workspace::test_new("parent");
+    let mut workspace = crate::workspace::Workspace::test_new("worktree");
+    workspace.worktree_space = Some(crate::workspace::WorktreeSpaceMembership {
+        key: "repo-key".into(),
+        label: "herdr".into(),
+        repo_root: "/repo/herdr".into(),
+        checkout_path: checkout.clone(),
+        is_linked_worktree: true,
+    });
+    let workspace_id = workspace.id.clone();
+    let pane_id = workspace.tabs[0].root_pane;
+    let terminal_id = workspace.terminal_id(pane_id).cloned().unwrap();
+    server.app.state.workspaces = vec![parent, workspace];
+    server.app.state.ensure_test_terminals();
+    server.app.state.active = Some(1);
+    server.app.state.selected = 1;
+    let checkout_key = crate::worktree::canonical_or_original(&checkout);
+    server
+        .app
+        .pending_api_worktree_removes
+        .insert(workspace_id.clone(), 7);
+    server
+        .app
+        .pending_api_worktree_remove_paths
+        .insert(checkout_key.clone(), 7);
+    server
+        .app
+        .pending_worktree_remove_runtime_exits
+        .insert(pane_id, 1);
+    let terminal_id = terminal_id.to_string();
+    let (writer, control_rx, _render_rx) = test_client_writer();
+
+    assert!(!server.handle_server_event(ServerEvent::ClientConnected {
+        client_id: 7,
+        cols: 80,
+        rows: 24,
+        cell_width_px: 0,
+        cell_height_px: 0,
+        pixel_mouse: false,
+        writer,
+    }));
+    assert!(
+        server.handle_server_event(ServerEvent::ClientAttachTerminal {
+            client_id: 7,
+            terminal_id: terminal_id.clone(),
+            takeover: false,
+        })
+    );
+    let (respond_to, _response_rx) = std::sync::mpsc::channel();
+
+    assert!(
+        server.handle_internal_event_with_forwarding(AppEvent::WorktreeRemoveFinished(Box::new(
+            crate::events::WorktreeRemoveResult {
+                workspace_id,
+                path: checkout,
+                workspace: None,
+                worktree: None,
+                forced: true,
+                api_request: Some(crate::events::ApiWorktreeRemoveRequest {
+                    id: "req".into(),
+                    operation_id: 7,
+                    checkout_key,
+                    shutdown_panes: vec![pane_id],
+                    respond_to,
+                }),
+                result: Ok(()),
+            }
+        )))
+    );
+
+    assert!(!server.clients.contains_key(&7));
+    assert!(!server.terminal_attach_owners.contains_key(&terminal_id));
+    let reason = read_server_shutdown_reason(control_rx.recv().expect("shutdown message"));
+    assert_eq!(reason, Some(format!("terminal {terminal_id} exited")));
+}
+
+#[test]
+fn expected_worktree_runtime_exit_does_not_release_agent() {
+    let mut server = test_headless_server();
+    let workspace = crate::workspace::Workspace::test_new("worktree");
+    let pane_id = workspace.tabs[0].root_pane;
+    let terminal_id = workspace.terminal_id(pane_id).cloned().unwrap();
+    server.app.state.workspaces = vec![workspace];
+    server.app.state.ensure_test_terminals();
+    server
+        .app
+        .state
+        .terminals
+        .get_mut(&terminal_id)
+        .unwrap()
+        .set_detected_state(
+            Some(crate::detect::Agent::Codex),
+            crate::detect::AgentState::Working,
+        );
+    server
+        .app
+        .pending_worktree_remove_runtime_exits
+        .insert(pane_id, 1);
+
+    assert!(server.handle_internal_event_with_forwarding(AppEvent::PaneDied { pane_id }));
+
+    assert_eq!(
+        server.app.state.terminals[&terminal_id].state,
+        crate::detect::AgentState::Working
+    );
+    assert!(server.app.find_pane(pane_id).is_some());
 }
 
 #[test]

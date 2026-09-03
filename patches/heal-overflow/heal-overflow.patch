@@ -1,8 +1,8 @@
 diff --git a/src/client/shell/composition.rs b/src/client/shell/composition.rs
-index 04ca995c4dde3f240670df774aa09acfa390a105..6b4fc04f6777cb549d3e0266c29682f5d8759ee5 100644
+index bcbf92fab13c0dbe7bf036a6c0d07a18c9cfc9b4..72caf54052880e057481a5a8ecd8dc8dc471b979 100644
 --- a/src/client/shell/composition.rs
 +++ b/src/client/shell/composition.rs
-@@ -431,6 +431,8 @@ impl ClientShellState {
+@@ -432,6 +432,8 @@ impl ClientShellState {
                      overlay,
                      snapshot,
                      &self.config.keybinds,
@@ -243,10 +243,10 @@ index ea59ad02971ecd3d75215c82233ad5e2bf3e6b24..f2ba0071a68e7857eb6e03aaf89d6ff7
      buffer: &mut Buffer,
      area: Rect,
 diff --git a/src/client/shell/state.rs b/src/client/shell/state.rs
-index 69e77dc56edd09b94afb4714ec71b96fa1a2269a..9615bd736fbdf96df3cfa9da1cfe5c253a6df426 100644
+index 6b00e6c34d36460491164db29930c10e95ca97a9..1d355fa744ac29d60b2bbe42d20591136513c09e 100644
 --- a/src/client/shell/state.rs
 +++ b/src/client/shell/state.rs
-@@ -24,6 +24,8 @@ pub(crate) struct ClientShellConfig {
+@@ -81,6 +81,8 @@ pub(crate) struct ClientShellConfig {
      pub(super) agents: crate::config::AgentsSidebarConfig,
      pub(super) agent_panel_sort: crate::config::AgentPanelSortConfig,
      pub(super) status_indicators: crate::config::StatusIndicatorStyle,
@@ -255,7 +255,7 @@ index 69e77dc56edd09b94afb4714ec71b96fa1a2269a..9615bd736fbdf96df3cfa9da1cfe5c25
      pub(super) sound_enabled: bool,
      pub(super) toast_delivery: crate::config::ToastDelivery,
      pub(super) toast_delay_seconds: u64,
-@@ -354,6 +356,7 @@ pub(super) enum ClientSettingsSection {
+@@ -411,6 +413,7 @@ pub(super) enum ClientSettingsSection {
      Indicators,
      Sound,
      Toast,
@@ -263,7 +263,7 @@ index 69e77dc56edd09b94afb4714ec71b96fa1a2269a..9615bd736fbdf96df3cfa9da1cfe5c25
      Integrations,
  }
  
-@@ -363,6 +366,7 @@ impl ClientSettingsSection {
+@@ -420,6 +423,7 @@ impl ClientSettingsSection {
          Self::Indicators,
          Self::Sound,
          Self::Toast,
@@ -271,7 +271,7 @@ index 69e77dc56edd09b94afb4714ec71b96fa1a2269a..9615bd736fbdf96df3cfa9da1cfe5c25
          Self::Integrations,
      ];
  
-@@ -372,6 +376,7 @@ impl ClientSettingsSection {
+@@ -429,6 +433,7 @@ impl ClientSettingsSection {
              Self::Indicators => "indicators",
              Self::Sound => "sound",
              Self::Toast => "toasts",

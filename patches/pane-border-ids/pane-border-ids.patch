@@ -16,10 +16,10 @@ index db22daf1dd3da660afd07cb5e74a4831089010ad..45864df53cc73046afdcde7e7d757220
            "key": "ui.hide_tab_bar_when_single_tab",
            "type": "boolean",
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 90ee33b8a9552a43c160fc0930721a8ffbc6be1a..f5de00cbedd5fc30aa8ca6216d096e6501ec2fcf 100644
+index 131b9729affaedbccaa8bf8ead8afd68ad26803e..1af6d6ce993a769b4812e7800f5ea5e197b1bde3 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
-@@ -486,6 +486,7 @@ impl App {
+@@ -488,6 +488,7 @@ impl App {
              pane_scrollbars: config.ui.pane_scrollbars,
              pane_gaps: config.ui.pane_gaps,
              show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
@@ -27,7 +27,7 @@ index 90ee33b8a9552a43c160fc0930721a8ffbc6be1a..f5de00cbedd5fc30aa8ca6216d096e65
              tab_bar_right: Vec::new(),
              tab_bar_right_separator: String::new(),
              reveal_hidden_cursor_for_cjk_ime: config.experimental.reveal_hidden_cursor_for_cjk_ime,
-@@ -823,6 +824,7 @@ impl App {
+@@ -827,6 +828,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
@@ -35,7 +35,7 @@ index 90ee33b8a9552a43c160fc0930721a8ffbc6be1a..f5de00cbedd5fc30aa8ca6216d096e65
                  self.configure_tab_bar_status(
                      &config.ui.tab_bar_right,
                      &config.ui.tab_bar_right_separator,
-@@ -1667,7 +1669,7 @@ mod tests {
+@@ -1671,7 +1673,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -44,7 +44,7 @@ index 90ee33b8a9552a43c160fc0930721a8ffbc6be1a..f5de00cbedd5fc30aa8ca6216d096e65
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -1691,6 +1693,7 @@ mod tests {
+@@ -1695,6 +1697,7 @@ mod tests {
              crate::config::ToastDelivery::Herdr
          );
          assert_eq!(app.state.agent_panel_sort, state::AgentPanelSort::Priority);
