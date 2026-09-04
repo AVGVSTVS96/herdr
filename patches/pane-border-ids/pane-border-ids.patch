@@ -16,7 +16,7 @@ index db22daf1dd3da660afd07cb5e74a4831089010ad..45864df53cc73046afdcde7e7d757220
            "key": "ui.hide_tab_bar_when_single_tab",
            "type": "boolean",
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 131b9729affaedbccaa8bf8ead8afd68ad26803e..1af6d6ce993a769b4812e7800f5ea5e197b1bde3 100644
+index 021754812901f33825b16a15de9585e2bb8f6e31..f077a08d22871ca1615d145350c5d83cd548ac30 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
 @@ -488,6 +488,7 @@ impl App {
