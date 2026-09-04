@@ -1,54 +1,30 @@
 {
   "channel": "preview",
   "base_version": "0.8.2",
-  "build_id": "2026-09-03-9a2a7af5402f",
-  "commit": "9a2a7af5402f2bc67ab24c8b4c14c6dd20a43bb2",
-  "built_at": "2026-09-03T13:07:20Z",
+  "build_id": "2026-09-04-6045fe6a8735",
+  "commit": "6045fe6a8735609507ec8600fa07205227546e8b",
+  "built_at": "2026-09-04T13:01:33Z",
   "protocol": 22,
-  "notes": "Patched Herdr build maintained from upstream with:\n\n- an independent Pane Labels setting for full public pane IDs on the right side of pane borders\n- fork-owned stable and preview update feeds for native `herdr update --handoff`\n\nSource: `9a2a7af5402f2bc67ab24c8b4c14c6dd20a43bb2`",
+  "notes": "Patched Herdr build maintained from upstream with:\n\n- an independent Pane Labels setting for full public pane IDs on the right side of pane borders\n- fork-owned stable and preview update feeds for native `herdr update --handoff`\n\nSource: `6045fe6a8735609507ec8600fa07205227546e8b`",
   "assets": {
     "linux-x86_64": {
-      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-03-9a2a7af5402f/herdr-linux-x86_64",
-      "sha256": "3698f260b03646d718d7bb636978e261f804b389dcf9134080f3491f65b1f1c1"
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-04-6045fe6a8735/herdr-linux-x86_64",
+      "sha256": "8d0f8735cf3543649c25ba39db56f56d13340bb99c5a3b37ae5a5b1c46735a66"
     },
     "linux-aarch64": {
-      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-03-9a2a7af5402f/herdr-linux-aarch64",
-      "sha256": "453ddd0e15c6b974034105bdd239d615516f2e66ea903c917a90a040e8c38401"
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-04-6045fe6a8735/herdr-linux-aarch64",
+      "sha256": "0386b117738780a86fd6915788f9b31665d9d2105374e1c0eb0030d92bba654e"
     },
     "macos-x86_64": {
-      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-03-9a2a7af5402f/herdr-macos-x86_64",
-      "sha256": "7bdd179825002d4ed53106cc0e4507482f29a11fd367da7d101540eb476d0e3d"
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-04-6045fe6a8735/herdr-macos-x86_64",
+      "sha256": "045628cacb1bb698f025bc9df41754ca9ab5caf2425025f67b44e3c3bab62331"
     },
     "macos-aarch64": {
-      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-03-9a2a7af5402f/herdr-macos-aarch64",
-      "sha256": "c7e38bc04fd3b0325d4597301bbed146b3e9c0ef3ca4d0f346cedf0c62dbace8"
+      "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-04-6045fe6a8735/herdr-macos-aarch64",
+      "sha256": "214207809fbafc1e6ca8a824600f50651cbd670593ba151018e7bc5ab0f4b2a7"
     }
   },
   "builds": {
-    "2026-08-21-624dfd479655": {
-      "base_version": "0.8.2",
-      "commit": "624dfd4796559042ec13ccf4d4b54374902ab81d",
-      "built_at": "2026-08-21T09:25:57Z",
-      "protocol": 20,
-      "assets": {
-        "linux-x86_64": {
-          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-08-21-624dfd479655/herdr-linux-x86_64",
-          "sha256": "75de4375f683aae5b4ece1b6625e37d4e0376b77b6abf0490b6160ded3fc6e7f"
-        },
-        "linux-aarch64": {
-          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-08-21-624dfd479655/herdr-linux-aarch64",
-          "sha256": "7ad982a333adae6d5f3ac87014328e6f9b46dd861d50af638e29b919ccefee41"
-        },
-        "macos-x86_64": {
-          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-08-21-624dfd479655/herdr-macos-x86_64",
-          "sha256": "2c26437fce5253d80ef8be5f6f3760cb18f379a8f6f7eb6f408d5dc1622e8951"
-        },
-        "macos-aarch64": {
-          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-08-21-624dfd479655/herdr-macos-aarch64",
-          "sha256": "2db5a5b80ba54d21c339ebe65fef06b66b644df67128ad1afb78cfce30045eaf"
-        }
-      }
-    },
     "2026-08-22-1c76079f8b94": {
       "base_version": "0.8.2",
       "commit": "1c76079f8b9494ec1c971c80fda34c116ecb89dd",
@@ -358,6 +334,30 @@
         "macos-aarch64": {
           "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-03-9a2a7af5402f/herdr-macos-aarch64",
           "sha256": "c7e38bc04fd3b0325d4597301bbed146b3e9c0ef3ca4d0f346cedf0c62dbace8"
+        }
+      }
+    },
+    "2026-09-04-6045fe6a8735": {
+      "base_version": "0.8.2",
+      "commit": "6045fe6a8735609507ec8600fa07205227546e8b",
+      "built_at": "2026-09-04T13:01:33Z",
+      "protocol": 22,
+      "assets": {
+        "linux-x86_64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-04-6045fe6a8735/herdr-linux-x86_64",
+          "sha256": "8d0f8735cf3543649c25ba39db56f56d13340bb99c5a3b37ae5a5b1c46735a66"
+        },
+        "linux-aarch64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-04-6045fe6a8735/herdr-linux-aarch64",
+          "sha256": "0386b117738780a86fd6915788f9b31665d9d2105374e1c0eb0030d92bba654e"
+        },
+        "macos-x86_64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-04-6045fe6a8735/herdr-macos-x86_64",
+          "sha256": "045628cacb1bb698f025bc9df41754ca9ab5caf2425025f67b44e3c3bab62331"
+        },
+        "macos-aarch64": {
+          "url": "https://github.com/AVGVSTVS96/herdr/releases/download/patched-preview-2026-09-04-6045fe6a8735/herdr-macos-aarch64",
+          "sha256": "214207809fbafc1e6ca8a824600f50651cbd670593ba151018e7bc5ab0f4b2a7"
         }
       }
     }
