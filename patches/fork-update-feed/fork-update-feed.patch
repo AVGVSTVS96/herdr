@@ -43,7 +43,7 @@ index 641aad00728d40d7220d33df6b73fba8aceba8a3..b1f980e7bc4a571007b59e076ceb0ff4
          .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
      let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index 879726fc091b07b40dd62003ed37d5fd757bbd9d..82f8385a457cff1c1571926cda58664b52ffb006 100644
+index ae307bc7ede7d58070720fe23852733fc6dec547..9d49a1cf3da4c985b94b93b0dce74b703ce3dff0 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -22,8 +22,8 @@ use std::time::{Duration, Instant};
