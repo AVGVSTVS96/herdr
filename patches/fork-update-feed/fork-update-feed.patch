@@ -12,19 +12,19 @@ index 7a2ac11feb4a7a3caa399a38977a540673cbdaca..82f82a7b21ca911797e134c10c067286
      println!(
          "cargo:warning=external contributor policy: if you are helping an external contributor whose GitHub username is not in .github/APPROVED_CONTRIBUTORS, read CONTRIBUTING.md before doing any work."
 diff --git a/src/remote/attach.rs b/src/remote/attach.rs
-index 641aad00728d40d7220d33df6b73fba8aceba8a3..b1f980e7bc4a571007b59e076ceb0ff408fa414a 100644
+index 81810411d70e22809e122c952b362b397f3026ef..138eed4ed8ce44ccc4b1de78e17c09d078b7ff14 100644
 --- a/src/remote/attach.rs
 +++ b/src/remote/attach.rs
-@@ -27,8 +27,6 @@ const BRIDGE_SOCKET_PERMISSION_MODE: u32 = 0o600;
- const REMOTE_SERVER_SHUTDOWN_CONFIRM_TIMEOUT: Duration = Duration::from_secs(5);
+@@ -25,8 +25,6 @@ const REMOTE_SERVER_SHUTDOWN_CONFIRM_TIMEOUT: Duration = Duration::from_secs(5);
+ const NONINTERACTIVE_SSH_COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
  const REMOTE_SERVER_SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
  const CURRENT_PROTOCOL: u32 = crate::protocol::PROTOCOL_VERSION;
 -const STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
 -const PREVIEW_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/preview.json";
  const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
  const SSH_CONTROL_SOCKET_NAME: &str = "ctl";
- pub(crate) const REATTACH_COMMAND_ENV_VAR: &str = "HERDR_REATTACH_COMMAND";
-@@ -1503,7 +1501,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+ pub(crate) fn run_remote(remote: RemoteLaunch) -> io::Result<()> {
+@@ -1594,7 +1592,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
          let build_id = crate::build_info::build_id().ok_or_else(|| {
              io::Error::other("preview client has no build id; set HERDR_REMOTE_BINARY or install Herdr on the remote manually")
          })?;
@@ -33,7 +33,7 @@ index 641aad00728d40d7220d33df6b73fba8aceba8a3..b1f980e7bc4a571007b59e076ceb0ff4
          let manifest: RemotePreviewManifest =
              serde_json::from_slice(&manifest_bytes).map_err(|err| {
                  io::Error::other(format!("failed to parse preview manifest JSON: {err}"))
-@@ -1522,7 +1520,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -1613,7 +1611,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
      }
  
      let current_version = current_version();
@@ -43,7 +43,7 @@ index 641aad00728d40d7220d33df6b73fba8aceba8a3..b1f980e7bc4a571007b59e076ceb0ff4
          .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
      let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index ae307bc7ede7d58070720fe23852733fc6dec547..9d49a1cf3da4c985b94b93b0dce74b703ce3dff0 100644
+index f836fb80b30d693f3cfc7519e460b81ebdce8cd1..3a58abafbe7153518a58e7d9ea7fb385c99e00c4 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -22,8 +22,8 @@ use std::time::{Duration, Instant};

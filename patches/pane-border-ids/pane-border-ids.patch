@@ -16,10 +16,10 @@ index 990509b2a3de6ad41f77eee038e34cea77932513..3d3fab807c59450297825c893ca5b887
            "key": "ui.hide_tab_bar_when_single_tab",
            "type": "boolean",
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index ed2c5fd9bace60d475369953e8473e80e9d54a00..980b2dd69b9f4aefb9553865d04c3305100cf3b6 100644
+index 0f78cf8bdc6475f50b075f113ff822f73522796b..d38a1660e68075824e7f00127709f4bc0435207d 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
-@@ -488,6 +488,7 @@ impl App {
+@@ -490,6 +490,7 @@ impl App {
              pane_scrollbars: config.ui.pane_scrollbars,
              pane_gaps: config.ui.pane_gaps,
              show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
@@ -27,7 +27,7 @@ index ed2c5fd9bace60d475369953e8473e80e9d54a00..980b2dd69b9f4aefb9553865d04c3305
              tab_bar_right: Vec::new(),
              tab_bar_right_separator: String::new(),
              reveal_hidden_cursor_for_cjk_ime: config.experimental.reveal_hidden_cursor_for_cjk_ime,
-@@ -827,6 +828,7 @@ impl App {
+@@ -829,6 +830,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
@@ -35,7 +35,7 @@ index ed2c5fd9bace60d475369953e8473e80e9d54a00..980b2dd69b9f4aefb9553865d04c3305
                  self.configure_tab_bar_status(
                      &config.ui.tab_bar_right,
                      &config.ui.tab_bar_right_separator,
-@@ -1675,7 +1677,7 @@ mod tests {
+@@ -1669,7 +1671,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -44,7 +44,7 @@ index ed2c5fd9bace60d475369953e8473e80e9d54a00..980b2dd69b9f4aefb9553865d04c3305
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -1699,6 +1701,7 @@ mod tests {
+@@ -1693,6 +1695,7 @@ mod tests {
              crate::config::ToastDelivery::Herdr
          );
          assert_eq!(app.state.agent_panel_sort, state::AgentPanelSort::Priority);
@@ -118,7 +118,7 @@ index a400382ca14e01fcdc9876ccb20af871dc27a3ca..809cd0d1320b6d34fbeb04e9f3a04b2a
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
          assert_eq!(config.ui.tab_bar_right.len(), 5);
 diff --git a/src/main.rs b/src/main.rs
-index ee38e84be7523623da3e7aedf8daa9c44c10adf0..387676dc78f90e93c8365a856eef8b232aad8db6 100644
+index 4d7e2f881858e7d33399a4bb6c0eee1132cd691c..6227249e983be4ab23ba1a83374718696f5a14ff 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -301,6 +301,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
@@ -132,7 +132,7 @@ index ee38e84be7523623da3e7aedf8daa9c44c10adf0..387676dc78f90e93c8365a856eef8b23
  # New tabs can still be created with the configured keybinding.
  # hide_tab_bar_when_single_tab = false
 diff --git a/src/ui/panes.rs b/src/ui/panes.rs
-index e31ee0adeb9840939eb0737153cec091ed4f8769..b5e4315fcdd540dc2948adf70956edb67deaad52 100644
+index fbd7b8eb41f113d0103eaee35f0854bcebb23bf1..64df5847545dc164ad6c0a429e568f9be3c5df3b 100644
 --- a/src/ui/panes.rs
 +++ b/src/ui/panes.rs
 @@ -7,7 +7,6 @@ use ratatui::{
@@ -276,7 +276,7 @@ index e31ee0adeb9840939eb0737153cec091ed4f8769..b5e4315fcdd540dc2948adf70956edb6
      }
  }
  
-@@ -831,33 +868,90 @@ mod tests {
+@@ -846,33 +883,90 @@ mod tests {
      }
  
      #[test]
@@ -290,7 +290,7 @@ index e31ee0adeb9840939eb0737153cec091ed4f8769..b5e4315fcdd540dc2948adf70956edb6
 +                .as_deref(),
 +            Some(" claude "),
          );
-+        assert_eq!(pane_border_titles(Some(""), None, 18).left, None,);
++        assert_eq!(pane_border_titles(Some(""), None, 18).left, None);
          assert_eq!(
 -            pane_border_title(" claude ", 20, true).as_deref(),
 -            Some(" claude ")
@@ -298,7 +298,7 @@ index e31ee0adeb9840939eb0737153cec091ed4f8769..b5e4315fcdd540dc2948adf70956edb6
 +            Some(" abc… "),
          );
 -        assert_eq!(pane_border_title("", 20, false), None);
-+        assert_eq!(pane_border_titles(Some("abcdef"), None, 2).left, None,);
++        assert_eq!(pane_border_titles(Some("abcdef"), None, 2).left, None);
 +    }
 +
 +    #[test]
@@ -382,7 +382,7 @@ index e31ee0adeb9840939eb0737153cec091ed4f8769..b5e4315fcdd540dc2948adf70956edb6
      }
  
      #[test]
-@@ -892,6 +986,147 @@ mod tests {
+@@ -907,6 +1001,147 @@ mod tests {
          assert_eq!(buffer[(6, 0)].symbol(), "块");
      }
  
