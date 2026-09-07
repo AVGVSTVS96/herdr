@@ -12,7 +12,7 @@ index a80ebb3f52866c6e9f652ddd10c1b19929928b29..77e2a7d57388a7193abf13b6a8f6576f
                  )?;
                  self.hits.overlay_primary = rendered.primary;
 diff --git a/src/client/shell/config.rs b/src/client/shell/config.rs
-index 1c2993b7b10f576f40771af44c4e8c104f957fe4..28cf9c7c073251784a9fa149b87de3868068d71b 100644
+index e8a9b4bb8694357e2f74088f436ea63df4389f38..9392f804b28337cd9060c79aeba471f644410b8f 100644
 --- a/src/client/shell/config.rs
 +++ b/src/client/shell/config.rs
 @@ -108,6 +108,8 @@ impl ClientShellConfig {
@@ -39,7 +39,7 @@ index 1c2993b7b10f576f40771af44c4e8c104f957fe4..28cf9c7c073251784a9fa149b87de386
          next.ui.status_indicators = crate::config::StatusIndicatorStyle::Symbols;
 +        next.ui.show_agent_labels_on_pane_borders = true;
 +        next.ui.show_pane_ids_on_pane_borders = true;
-         next.ui.sidebar.agents.row_gap = 2;
+         next.ui.sidebar.agents = toml::from_str("rows = [[{ token = 'machine', rules = [{ equals = 'Local', bold = true }] }]]\nrow_gap = 2").unwrap();
          next.keys.prefix = "ctrl+a".to_owned();
  
 @@ -457,6 +463,8 @@ mod tests {
@@ -50,9 +50,9 @@ index 1c2993b7b10f576f40771af44c4e8c104f957fe4..28cf9c7c073251784a9fa149b87de386
 +        assert!(shell.show_pane_ids_on_pane_borders);
          assert_eq!(shell.agents.row_gap, 2);
          assert_eq!(
-             shell.keybinds.prefix,
+             shell.agents.rows[0][0].style_for_value("Local").bold,
 diff --git a/src/client/shell/mouse.rs b/src/client/shell/mouse.rs
-index 48646f28f94266a91d91ee74a6f1f718c19cfc6e..a5fb0f11f6e5678e11f3e7f9b7666ea226527693 100644
+index cd4a6c164039d6483dd232956997ab23c0d57749..d90929a1f78bbb5237a0d61aef757ec99f7d4f60 100644
 --- a/src/client/shell/mouse.rs
 +++ b/src/client/shell/mouse.rs
 @@ -1434,7 +1434,8 @@ impl ClientShellState {
@@ -243,7 +243,7 @@ index ea59ad02971ecd3d75215c82233ad5e2bf3e6b24..f2ba0071a68e7857eb6e03aaf89d6ff7
      buffer: &mut Buffer,
      area: Rect,
 diff --git a/src/client/shell/state.rs b/src/client/shell/state.rs
-index 67bdff9169d2df91d8053942faf9b6001455a650..2ff4c5fffe4be6e5fcabdf5fb1219dfa1187d97d 100644
+index 81845d35db50e694a1da92f1e139c79d6d2dae8f..3cc9104ea91b8a0c9b1a097f38dd7349bb5da76b 100644
 --- a/src/client/shell/state.rs
 +++ b/src/client/shell/state.rs
 @@ -81,6 +81,8 @@ pub(crate) struct ClientShellConfig {
@@ -255,7 +255,7 @@ index 67bdff9169d2df91d8053942faf9b6001455a650..2ff4c5fffe4be6e5fcabdf5fb1219dfa
      pub(super) sound_enabled: bool,
      pub(super) toast_delivery: crate::config::ToastDelivery,
      pub(super) toast_delay_seconds: u64,
-@@ -443,6 +445,7 @@ pub(super) enum ClientSettingsSection {
+@@ -442,6 +444,7 @@ pub(super) enum ClientSettingsSection {
      Indicators,
      Sound,
      Toast,
@@ -263,7 +263,7 @@ index 67bdff9169d2df91d8053942faf9b6001455a650..2ff4c5fffe4be6e5fcabdf5fb1219dfa
      Integrations,
  }
  
-@@ -452,6 +455,7 @@ impl ClientSettingsSection {
+@@ -451,6 +454,7 @@ impl ClientSettingsSection {
          Self::Indicators,
          Self::Sound,
          Self::Toast,
@@ -271,7 +271,7 @@ index 67bdff9169d2df91d8053942faf9b6001455a650..2ff4c5fffe4be6e5fcabdf5fb1219dfa
          Self::Integrations,
      ];
  
-@@ -461,6 +465,7 @@ impl ClientSettingsSection {
+@@ -460,6 +464,7 @@ impl ClientSettingsSection {
              Self::Indicators => "indicators",
              Self::Sound => "sound",
              Self::Toast => "toasts",
