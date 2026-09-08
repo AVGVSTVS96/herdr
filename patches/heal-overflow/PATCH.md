@@ -2,7 +2,7 @@
 format: patch-md/v0.1
 id: heal-overflow
 summary: Healed changes not yet attributed to a named patch package.
-baseline: e7d8220788b4fa7c266a1e4457591b694478771c
+baseline: b99002ac99b09e00b4ca692436cb15a6b0d676f1
 patch_file: heal-overflow.patch
 patch_sha256: 30ad5c1eb9f408074774ebc95b52f40f4edf8cbac5882b54807691dfedcc62fe
 ---
