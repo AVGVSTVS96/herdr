@@ -12,11 +12,11 @@ index 7a2ac11feb4a7a3caa399a38977a540673cbdaca..82f82a7b21ca911797e134c10c067286
      println!(
          "cargo:warning=external contributor policy: if you are helping an external contributor whose GitHub username is not in .github/APPROVED_CONTRIBUTORS, read CONTRIBUTING.md before doing any work."
 diff --git a/src/remote/attach.rs b/src/remote/attach.rs
-index 10db88a6a7342c79b1129e27e5b6c54d8649ac89..94c2e06e431d0a117341ceaf963752e795438f2f 100644
+index ac5415fa6623f6ba1e0a902100474d418a624f4e..a44c48e68cc70ee279b63da6d95d4c125c715018 100644
 --- a/src/remote/attach.rs
 +++ b/src/remote/attach.rs
-@@ -25,8 +25,6 @@ const REMOTE_SERVER_SHUTDOWN_CONFIRM_TIMEOUT: Duration = Duration::from_secs(5);
- const NONINTERACTIVE_SSH_COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
+@@ -27,8 +27,6 @@ const NONINTERACTIVE_SSH_STDERR_LIMIT: usize = 16 * 1024;
+ const BRIDGE_FAILURE_REPORT_TIMEOUT: Duration = Duration::from_secs(1);
  const REMOTE_SERVER_SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
  const CURRENT_PROTOCOL: u32 = crate::protocol::PROTOCOL_VERSION;
 -const STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
@@ -24,7 +24,7 @@ index 10db88a6a7342c79b1129e27e5b6c54d8649ac89..94c2e06e431d0a117341ceaf963752e7
  const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
  const SSH_CONTROL_SOCKET_NAME: &str = "ctl";
  pub(crate) fn run_remote(remote: RemoteLaunch) -> io::Result<()> {
-@@ -1597,7 +1595,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -1602,7 +1600,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
          let build_id = crate::build_info::build_id().ok_or_else(|| {
              io::Error::other("preview client has no build id; set HERDR_REMOTE_BINARY or install Herdr on the remote manually")
          })?;
@@ -33,7 +33,7 @@ index 10db88a6a7342c79b1129e27e5b6c54d8649ac89..94c2e06e431d0a117341ceaf963752e7
          let manifest: RemotePreviewManifest =
              serde_json::from_slice(&manifest_bytes).map_err(|err| {
                  io::Error::other(format!("failed to parse preview manifest JSON: {err}"))
-@@ -1616,7 +1614,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -1621,7 +1619,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
      }
  
      let current_version = current_version();
