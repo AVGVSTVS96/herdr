@@ -916,6 +916,7 @@ pub(crate) struct ClientShellState {
     pub(super) workspace_press: Option<ClientWorkspacePress>,
     pub(super) tab_press: Option<ClientTabPress>,
     pub(super) collapsed_groups: HashSet<String>,
+    pub(super) remote_collapsed_groups: HashMap<ClientEndpointId, HashSet<String>>,
     pub(super) workspace_scroll: usize,
     pub(super) agent_scroll: usize,
     pub(super) tab_scroll: usize,
@@ -931,7 +932,8 @@ pub(crate) struct ClientShellState {
     pub(super) active_endpoint_id: ClientEndpointId,
     pub(super) collapsed_endpoints: HashSet<ClientEndpointId>,
     pub(super) mode: ClientShellMode,
-    pub(super) navigate_workspace_id: Option<String>,
+    pub(super) navigate_workspace_id: Option<WorkspaceNavigationTarget>,
+    pub(super) reveal_navigation_workspace: bool,
     pub(super) overlay: Option<ClientShellOverlay>,
     pub(super) previous_pane_id: Option<String>,
     pub(super) pane_mouse_gesture: Option<ClientPaneMouseGesture>,
@@ -972,6 +974,7 @@ pub(crate) struct ClientShellState {
     pub(super) pending_input_source_changes: Vec<bool>,
     pub(super) host_appearance: Option<crate::terminal_theme::HostAppearance>,
     pub(super) host_appearance_explicit: bool,
+    pub(super) host_background: Option<crate::terminal_theme::RgbColor>,
     pub(super) local_config_diagnostic: Option<String>,
     pub(super) config_diagnostic: Option<String>,
     pub(super) endpoint_error: Option<String>,
@@ -1036,6 +1039,16 @@ impl ClientShellState {
         if let Some(sort) = preferences.agent_panel_sort {
             config.agent_panel_sort = sort;
         }
+        let mut remote_collapsed_groups = HashMap::<ClientEndpointId, HashSet<String>>::new();
+        for saved in preferences.remote_collapsed_groups {
+            let Ok(profile_id) = crate::client::endpoint::ProfileId::parse(saved.profile_id) else {
+                continue;
+            };
+            remote_collapsed_groups
+                .entry(ClientEndpointId::Ssh(profile_id))
+                .or_default()
+                .extend(saved.collapsed_groups);
+        }
         Self {
             config,
             snapshot: None,
@@ -1059,6 +1072,7 @@ impl ClientShellState {
             workspace_press: None,
             tab_press: None,
             collapsed_groups: preferences.collapsed_groups.into_iter().collect(),
+            remote_collapsed_groups,
             workspace_scroll: 0,
             agent_scroll: 0,
             tab_scroll: 0,
@@ -1075,6 +1089,7 @@ impl ClientShellState {
             collapsed_endpoints: HashSet::new(),
             mode: ClientShellMode::Terminal,
             navigate_workspace_id: None,
+            reveal_navigation_workspace: false,
             overlay,
             previous_pane_id: None,
             pane_mouse_gesture: None,
@@ -1115,6 +1130,7 @@ impl ClientShellState {
             pending_input_source_changes: Vec::new(),
             host_appearance: None,
             host_appearance_explicit: false,
+            host_background: None,
             config_diagnostic: local_config_diagnostic.clone(),
             local_config_diagnostic,
             endpoint_error: None,
@@ -1146,14 +1162,48 @@ impl ClientShellState {
             .is_some_and(|(cols, rows)| !self.layout(cols, rows).mobile_header.is_empty())
     }
 
+    pub(super) fn collapsed_groups_for_endpoint(
+        &self,
+        endpoint_id: &ClientEndpointId,
+    ) -> Option<&HashSet<String>> {
+        if endpoint_id.is_local() {
+            Some(&self.collapsed_groups)
+        } else {
+            self.remote_collapsed_groups.get(endpoint_id)
+        }
+    }
+
+    pub(super) fn group_is_collapsed(&self, endpoint_id: &ClientEndpointId, key: &str) -> bool {
+        self.collapsed_groups_for_endpoint(endpoint_id)
+            .is_some_and(|groups| groups.contains(key))
+    }
+
+    pub(super) fn toggle_collapsed_group(&mut self, endpoint_id: &ClientEndpointId, key: String) {
+        let groups = if endpoint_id.is_local() {
+            &mut self.collapsed_groups
+        } else {
+            self.remote_collapsed_groups
+                .entry(endpoint_id.clone())
+                .or_default()
+        };
+        if !groups.remove(&key) {
+            groups.insert(key);
+        }
+    }
+
     pub(super) fn navigation_workspace_entries(
         &self,
         snapshot: &ClientShellSnapshot,
     ) -> Vec<WorkspaceEntry> {
+        let empty_collapsed_groups = HashSet::new();
         if self.mobile_layout_active() {
-            render::workspace_entries(snapshot, &HashSet::new())
+            render::workspace_entries(snapshot, &empty_collapsed_groups)
         } else {
-            render::workspace_entries(snapshot, &self.collapsed_groups)
+            render::workspace_entries(
+                snapshot,
+                self.collapsed_groups_for_endpoint(&self.active_endpoint_id)
+                    .unwrap_or(&empty_collapsed_groups),
+            )
         }
     }
 
@@ -1320,7 +1370,12 @@ impl ClientShellState {
             self.hits = ShellHitMap::default();
         }
         if boot_changed {
+            // A reboot must not turn Enter on a stale preview into focus on a reused ID.
+            let preview = (self.mode == ClientShellMode::Navigate)
+                .then(|| self.navigate_workspace_id.take())
+                .flatten();
             self.reset_endpoint_projection();
+            self.navigate_workspace_id = preview;
         } else if let Some(previous) = self
             .snapshot
             .as_deref()
@@ -1436,15 +1491,11 @@ impl ClientShellState {
                 }
             }
         }
-        if self.mode == ClientShellMode::Navigate
-            && self.navigate_workspace_id.as_ref().is_none_or(|selected| {
-                !snapshot
-                    .workspaces
-                    .iter()
-                    .any(|workspace| &workspace.workspace_id == selected)
-            })
-        {
-            self.navigate_workspace_id = snapshot.focused_workspace_id.clone();
+        if self.mode == ClientShellMode::Navigate && self.navigate_workspace_id.is_none() {
+            self.navigate_workspace_id = snapshot
+                .focused_workspace_id
+                .as_deref()
+                .and_then(|id| self.navigation_target(&self.active_endpoint_id, id));
             self.reveal_mobile_workspace = self.mobile_layout_active();
         }
         let pane_exists =

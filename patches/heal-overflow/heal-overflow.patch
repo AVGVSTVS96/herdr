@@ -1,8 +1,8 @@
 diff --git a/src/client/shell/composition.rs b/src/client/shell/composition.rs
-index a80ebb3f52866c6e9f652ddd10c1b19929928b29..77e2a7d57388a7193abf13b6a8f6576fd61e6aff 100644
+index 1d5e583db11e3854ccdff544a7fbaf5321ae0161..e74737c044bdca9cab90d69d779b7fe3fdc95031 100644
 --- a/src/client/shell/composition.rs
 +++ b/src/client/shell/composition.rs
-@@ -562,6 +562,8 @@ impl ClientShellState {
+@@ -611,6 +611,8 @@ impl ClientShellState {
                      &self.endpoints,
                      &self.active_endpoint_id,
                      &self.config.keybinds,
@@ -12,10 +12,10 @@ index a80ebb3f52866c6e9f652ddd10c1b19929928b29..77e2a7d57388a7193abf13b6a8f6576f
                  )?;
                  self.hits.overlay_primary = rendered.primary;
 diff --git a/src/client/shell/config.rs b/src/client/shell/config.rs
-index e8a9b4bb8694357e2f74088f436ea63df4389f38..9392f804b28337cd9060c79aeba471f644410b8f 100644
+index 36e1051fed08cb82e104d98a7210ed89ad0a545d..5e8ecdb029425eccfe1b493f3becc466d313a6bd 100644
 --- a/src/client/shell/config.rs
 +++ b/src/client/shell/config.rs
-@@ -108,6 +108,8 @@ impl ClientShellConfig {
+@@ -125,6 +125,8 @@ impl ClientShellConfig {
              agents: config.ui.sidebar.agents.clone(),
              agent_panel_sort: config.ui.agent_panel_sort,
              status_indicators: config.ui.status_indicators,
@@ -24,7 +24,7 @@ index e8a9b4bb8694357e2f74088f436ea63df4389f38..9392f804b28337cd9060c79aeba471f6
              sound_enabled: config.ui.sound.enabled,
              toast_delivery: config.ui.toast.delivery,
              toast_delay_seconds: config.ui.toast.delay_seconds,
-@@ -310,6 +312,8 @@ impl ClientShellConfig {
+@@ -327,6 +329,8 @@ impl ClientShellConfig {
                  self.agents = ui.sidebar.agents.clone();
                  self.agent_panel_sort = ui.agent_panel_sort;
                  self.status_indicators = ui.status_indicators;
@@ -33,7 +33,7 @@ index e8a9b4bb8694357e2f74088f436ea63df4389f38..9392f804b28337cd9060c79aeba471f6
                  self.sound_enabled = ui.sound.enabled;
                  self.toast_delivery = ui.toast.delivery;
                  self.toast_delay_seconds = ui.toast.delay_seconds;
-@@ -441,6 +445,8 @@ mod tests {
+@@ -458,6 +462,8 @@ mod tests {
          next.ui.tab_bar_position = TabBarPositionConfig::Bottom;
          next.ui.agent_panel_sort = crate::config::AgentPanelSortConfig::Priority;
          next.ui.status_indicators = crate::config::StatusIndicatorStyle::Symbols;
@@ -42,7 +42,7 @@ index e8a9b4bb8694357e2f74088f436ea63df4389f38..9392f804b28337cd9060c79aeba471f6
          next.ui.sidebar.agents = toml::from_str("rows = [[{ token = 'machine', rules = [{ equals = 'Local', bold = true }] }]]\nrow_gap = 2").unwrap();
          next.keys.prefix = "ctrl+a".to_owned();
  
-@@ -457,6 +463,8 @@ mod tests {
+@@ -474,6 +480,8 @@ mod tests {
              shell.status_indicators,
              crate::config::StatusIndicatorStyle::Symbols
          );
@@ -52,10 +52,10 @@ index e8a9b4bb8694357e2f74088f436ea63df4389f38..9392f804b28337cd9060c79aeba471f6
          assert_eq!(
              shell.agents.rows[0][0].style_for_value("Local").bold,
 diff --git a/src/client/shell/mouse.rs b/src/client/shell/mouse.rs
-index cd4a6c164039d6483dd232956997ab23c0d57749..d90929a1f78bbb5237a0d61aef757ec99f7d4f60 100644
+index 243109075f8b67753342ae3bdc15e2aafbea6f52..36bd54da82881d6a6c9002ea162499696ad86725 100644
 --- a/src/client/shell/mouse.rs
 +++ b/src/client/shell/mouse.rs
-@@ -1434,7 +1434,8 @@ impl ClientShellState {
+@@ -1448,7 +1448,8 @@ impl ClientShellState {
                          Some(ClientShellOverlay::Settings(ClientSettingsOverlay {
                              section: ClientSettingsSection::Indicators
                                  | ClientSettingsSection::Sound
@@ -66,7 +66,7 @@ index cd4a6c164039d6483dd232956997ab23c0d57749..d90929a1f78bbb5237a0d61aef757ec9
                          }))
                      );
 diff --git a/src/client/shell/overlays.rs b/src/client/shell/overlays.rs
-index faf252a843abc5f80ae177e9a626c2bb6d9170ea..fb26682fc03a7dcc98cd041cacb14bf1e5baaf84 100644
+index 4418c2c32eb18992e6fa2feda0d44e3011c22437..0b8560cad506392c07a54134fb6ede7b848bee8f 100644
 --- a/src/client/shell/overlays.rs
 +++ b/src/client/shell/overlays.rs
 @@ -36,6 +36,8 @@ pub(crate) fn render_client_overlay(
@@ -243,7 +243,7 @@ index ea59ad02971ecd3d75215c82233ad5e2bf3e6b24..f2ba0071a68e7857eb6e03aaf89d6ff7
      buffer: &mut Buffer,
      area: Rect,
 diff --git a/src/client/shell/state.rs b/src/client/shell/state.rs
-index 81845d35db50e694a1da92f1e139c79d6d2dae8f..3cc9104ea91b8a0c9b1a097f38dd7349bb5da76b 100644
+index add297e28068360d0cc5f8b7fece3a69e2a429ed..d7d6a424cfaa444ca949eacd58a0c229b798c5fe 100644
 --- a/src/client/shell/state.rs
 +++ b/src/client/shell/state.rs
 @@ -81,6 +81,8 @@ pub(crate) struct ClientShellConfig {
