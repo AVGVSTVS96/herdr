@@ -300,10 +300,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -vF 'bun test scripts/release-workflows.test.ts' justfile > "$RUNNER_TEMP/justfile"
-          if ! just --justfile "$RUNNER_TEMP/justfile" --working-directory . check; then
+          cp justfile "$RUNNER_TEMP/justfile"
+          trap 'cp "$RUNNER_TEMP/justfile" justfile' EXIT
+          grep -vF 'bun test scripts/release-workflows.test.ts' "$RUNNER_TEMP/justfile" > justfile
+          if ! just check; then
             echo "just check failed once; retrying to rule out known timing-sensitive tests" >&2
-            just --justfile "$RUNNER_TEMP/justfile" --working-directory . check
+            just check
           fi
           python3 -m unittest scripts.test_fork_sync
 
