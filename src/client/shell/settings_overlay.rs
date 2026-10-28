@@ -37,8 +37,6 @@ pub(super) fn render_settings_overlay(
     buffer: &mut Buffer,
     settings: &ClientSettingsOverlay,
     integration_updates_available: bool,
-    show_agent_labels_on_pane_borders: bool,
-    show_pane_ids_on_pane_borders: bool,
     palette: &Palette,
 ) -> Option<OverlayRender> {
     let integration_height = 14u16
@@ -196,17 +194,6 @@ pub(super) fn render_settings_overlay(
                 &mut choice_hits,
             );
         }
-        ClientSettingsSection::PaneLabels => {
-            render_pane_labels(
-                buffer,
-                content,
-                settings.selected,
-                show_agent_labels_on_pane_borders,
-                show_pane_ids_on_pane_borders,
-                palette,
-                &mut choice_hits,
-            );
-        }
         ClientSettingsSection::Integrations => {
             render_integrations(buffer, content, settings, palette);
         }
@@ -264,75 +251,6 @@ pub(super) fn render_settings_overlay(
         settings_choices: choice_hits,
         ..OverlayRender::default()
     })
-}
-
-fn render_pane_labels(
-    buffer: &mut Buffer,
-    area: Rect,
-    selected: usize,
-    show_agent_labels: bool,
-    show_pane_ids: bool,
-    palette: &Palette,
-    hits: &mut Vec<(Rect, usize)>,
-) {
-    put_text(
-        buffer,
-        area.x,
-        area.y,
-        area.width,
-        "pane labels",
-        Style::default()
-            .fg(palette.text)
-            .bg(palette.panel_bg)
-            .add_modifier(Modifier::BOLD),
-    );
-    put_text(
-        buffer,
-        area.x,
-        area.y + 1,
-        area.width,
-        "choose what appears in split pane borders",
-        Style::default().fg(palette.overlay1).bg(palette.panel_bg),
-    );
-
-    let rows = [
-        (
-            "agent labels",
-            "show detected agent names on the left",
-            show_agent_labels,
-        ),
-        (
-            "pane ids",
-            "show full pane IDs like w1:p2 on the right",
-            show_pane_ids,
-        ),
-    ];
-    for (index, (label, description, enabled)) in rows.into_iter().enumerate() {
-        let y = area.y + 3 + index as u16;
-        if y >= area.bottom() {
-            break;
-        }
-        let rect = Rect::new(area.x, y, area.width, 1);
-        let style = if index == selected {
-            Style::default()
-                .fg(contrast(palette))
-                .bg(palette.accent)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(palette.text).bg(palette.panel_bg)
-        };
-        buffer.set_style(rect, style);
-        let marker = if enabled { "[✓]" } else { "[ ]" };
-        put_text(
-            buffer,
-            rect.x,
-            rect.y,
-            rect.width,
-            &format!(" {label:<13} {marker}  {description}"),
-            style,
-        );
-        hits.push((rect, index));
-    }
 }
 
 fn render_choice_section(

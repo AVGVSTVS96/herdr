@@ -22,8 +22,8 @@ use std::time::{Duration, Instant};
 use interprocess::local_socket::traits::Stream as _;
 use serde::{Deserialize, Deserializer};
 
-const DEFAULT_STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
-const DEFAULT_PREVIEW_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/preview.json";
+const STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
+const PREVIEW_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/preview.json";
 const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/herdr.json";
 const HERDR_UPDATE_COMMAND: &str = "herdr update";
 const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade herdr";
@@ -326,31 +326,11 @@ impl ReleaseInfo {
 }
 
 fn fetch_update_manifest() -> Result<UpdateManifest, String> {
-    fetch_json_manifest(stable_update_manifest_url())
+    fetch_json_manifest(STABLE_UPDATE_MANIFEST_URL)
 }
 
 fn fetch_preview_manifest() -> Result<PreviewManifest, String> {
-    fetch_json_manifest(preview_update_manifest_url())
-}
-
-pub(crate) fn stable_update_manifest_url() -> &'static str {
-    resolve_update_manifest_url(
-        option_env!("HERDR_STABLE_UPDATE_MANIFEST_URL"),
-        DEFAULT_STABLE_UPDATE_MANIFEST_URL,
-    )
-}
-
-pub(crate) fn preview_update_manifest_url() -> &'static str {
-    resolve_update_manifest_url(
-        option_env!("HERDR_PREVIEW_UPDATE_MANIFEST_URL"),
-        DEFAULT_PREVIEW_UPDATE_MANIFEST_URL,
-    )
-}
-
-fn resolve_update_manifest_url<'a>(override_url: Option<&'a str>, default_url: &'a str) -> &'a str {
-    override_url
-        .filter(|url| !url.trim().is_empty())
-        .unwrap_or(default_url)
+    fetch_json_manifest(PREVIEW_UPDATE_MANIFEST_URL)
 }
 
 fn fetch_json_manifest<T>(url: &str) -> Result<T, String>
@@ -2427,28 +2407,6 @@ mod tests {
     };
     use std::sync::{Mutex, OnceLock};
     use std::thread;
-
-    #[test]
-    fn manifest_url_override_uses_default_for_unset_or_blank_values() {
-        assert_eq!(
-            resolve_update_manifest_url(None, DEFAULT_STABLE_UPDATE_MANIFEST_URL),
-            DEFAULT_STABLE_UPDATE_MANIFEST_URL
-        );
-        assert_eq!(
-            resolve_update_manifest_url(Some("  \t"), DEFAULT_PREVIEW_UPDATE_MANIFEST_URL),
-            DEFAULT_PREVIEW_UPDATE_MANIFEST_URL
-        );
-    }
-
-    #[test]
-    fn manifest_url_override_preserves_a_configured_url() {
-        let fork_url = "https://fork.example/updates/latest.json";
-
-        assert_eq!(
-            resolve_update_manifest_url(Some(fork_url), DEFAULT_STABLE_UPDATE_MANIFEST_URL),
-            fork_url
-        );
-    }
 
     fn env_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();

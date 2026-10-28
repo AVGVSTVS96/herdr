@@ -1176,7 +1176,7 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
 
     state.open_settings_overlay();
     state.compose(106, 30).expect("settings overlay");
-    for _ in 0..4 {
+    for _ in 0..3 {
         let next = state.handle_input_bytes(b"\t");
         assert!(next.actions.is_empty());
     }
@@ -1228,7 +1228,7 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
         .join("\n");
     assert!(text.contains("update available"));
     assert!(text.contains("not found"));
-    assert!(!text.contains("choose what appears in split pane borders"));
+    assert!(!text.contains("pane labels"));
 
     let popup = state.hits.settings_popup;
     let blank_click =
@@ -1293,73 +1293,4 @@ fn client_settings_preview_restore_and_endpoint_integrations_are_owned_by_overla
             ..
         })) if integration_messages == &["installed codex"]
     ));
-}
-
-#[test]
-fn pane_label_settings_render_and_toggle_independently_with_keyboard_and_mouse() {
-    let _guard = crate::config::test_config_env_lock().lock().unwrap();
-    let path = std::env::temp_dir().join(format!(
-        "herdr-pane-label-settings-{}-{}.toml",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    std::fs::write(&path, "onboarding = false\n").unwrap();
-    std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-
-    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
-    state.set_snapshot(Box::new(snapshot()));
-    state.set_pane_surface(surface());
-    state.open_settings_overlay();
-    state.select_settings_section(
-        ClientSettingsSection::PaneLabels,
-        &mut ClientShellInput::default(),
-    );
-
-    let frame = state.compose(106, 30).expect("pane label settings");
-    let text = frame
-        .cells
-        .chunks(frame.width as usize)
-        .map(|row| {
-            row.iter()
-                .map(|cell| cell.symbol.as_str())
-                .collect::<String>()
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    assert!(text.contains("agent labels  [ ]"));
-    assert!(text.contains("pane ids      [ ]"));
-
-    let agent_toggle = state.handle_input_bytes(b"\r");
-    assert!(agent_toggle.repaint);
-    assert!(state.config.show_agent_labels_on_pane_borders);
-    assert!(!state.config.show_pane_ids_on_pane_borders);
-
-    state.handle_input_bytes(b"j");
-    let pane_id_toggle = state.handle_input_bytes(b" ");
-    assert!(pane_id_toggle.repaint);
-    assert!(state.config.show_agent_labels_on_pane_borders);
-    assert!(state.config.show_pane_ids_on_pane_borders);
-
-    state.compose(106, 30).expect("updated pane label settings");
-    let agent_row = state.hits.settings_choices[0].0;
-    let mouse_toggle =
-        state.handle_raw_events(vec![RawInputEvent::Mouse(crossterm::event::MouseEvent {
-            kind: MouseEventKind::Down(MouseButton::Left),
-            column: agent_row.x + 1,
-            row: agent_row.y,
-            modifiers: KeyModifiers::empty(),
-        })]);
-    assert!(mouse_toggle.repaint);
-    assert!(!state.config.show_agent_labels_on_pane_borders);
-    assert!(state.config.show_pane_ids_on_pane_borders);
-
-    let content = std::fs::read_to_string(&path).unwrap();
-    assert!(content.contains("show_agent_labels_on_pane_borders = false"));
-    assert!(content.contains("show_pane_ids_on_pane_borders = true"));
-
-    std::env::remove_var(crate::config::CONFIG_PATH_ENV_VAR);
-    let _ = std::fs::remove_file(path);
 }

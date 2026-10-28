@@ -36,8 +36,6 @@ pub(crate) fn render_client_overlay(
     endpoints: &[ClientShellEndpoint],
     active_endpoint_id: &ClientEndpointId,
     k: &LiveKeybindConfig,
-    show_agent_labels_on_pane_borders: bool,
-    show_pane_ids_on_pane_borders: bool,
     p: &Palette,
 ) -> Option<OverlayRender> {
     if !matches!(
@@ -65,14 +63,9 @@ pub(crate) fn render_client_overlay(
         ClientShellOverlay::Navigator(v) => {
             render_navigator_overlay(b, v, endpoints, active_endpoint_id, p)
         }
-        ClientShellOverlay::Settings(v) => settings_overlay::render_settings_overlay(
-            b,
-            v,
-            s.integration_updates_available,
-            show_agent_labels_on_pane_borders,
-            show_pane_ids_on_pane_borders,
-            p,
-        ),
+        ClientShellOverlay::Settings(v) => {
+            settings_overlay::render_settings_overlay(b, v, s.integration_updates_available, p)
+        }
         ClientShellOverlay::WorktreeCreate(v) => {
             worktree_overlays::render_worktree_create_overlay(b, v, p)
         }

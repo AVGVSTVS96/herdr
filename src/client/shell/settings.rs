@@ -51,7 +51,6 @@ impl ClientShellState {
             ClientSettingsSection::Indicators => indicator_index(self.config.status_indicators),
             ClientSettingsSection::Sound => usize::from(!self.config.sound_enabled),
             ClientSettingsSection::Toast => toast_index(self.config.toast_delivery),
-            ClientSettingsSection::PaneLabels => 0,
             ClientSettingsSection::Integrations => 0,
         }
     }
@@ -100,7 +99,6 @@ impl ClientShellState {
                 ClientSettingsSection::Theme => crate::config::THEME_NAMES.len(),
                 ClientSettingsSection::Indicators | ClientSettingsSection::Sound => 2,
                 ClientSettingsSection::Toast => 4,
-                ClientSettingsSection::PaneLabels => 2,
                 ClientSettingsSection::Integrations => settings.integrations.len(),
             },
             _ => 0,
@@ -223,18 +221,6 @@ impl ClientShellState {
                     crate::config::ConfigEdit::ToastDelivery(delivery),
                     outcome,
                 );
-            }
-            ClientSettingsSection::PaneLabels => {
-                let edit = if selected == 0 {
-                    crate::config::ConfigEdit::AgentBorderLabels(
-                        !self.config.show_agent_labels_on_pane_borders,
-                    )
-                } else {
-                    crate::config::ConfigEdit::PaneBorderIds(
-                        !self.config.show_pane_ids_on_pane_borders,
-                    )
-                };
-                self.save_settings_edit(edit, outcome);
             }
             ClientSettingsSection::Integrations => self.install_recommended_integrations(outcome),
         }

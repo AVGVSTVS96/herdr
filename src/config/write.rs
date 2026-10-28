@@ -4,8 +4,6 @@ pub(crate) enum ConfigEdit<'a> {
     StatusIndicators(super::StatusIndicatorStyle),
     Sound(bool),
     ToastDelivery(super::ToastDelivery),
-    AgentBorderLabels(bool),
-    PaneBorderIds(bool),
 }
 
 impl ConfigEdit<'_> {
@@ -15,8 +13,6 @@ impl ConfigEdit<'_> {
             Self::StatusIndicators(_) => "status indicators",
             Self::Sound(_) => "sound setting",
             Self::ToastDelivery(_) => "toast setting",
-            Self::AgentBorderLabels(_) => "agent border labels",
-            Self::PaneBorderIds(_) => "pane border ids",
         }
     }
 
@@ -45,15 +41,6 @@ impl ConfigEdit<'_> {
                 };
                 let content = super::upsert_section_value(content, "ui.toast", "delivery", value);
                 super::remove_section_key(&content, "ui.toast", "enabled")
-            }
-            Self::AgentBorderLabels(enabled) => super::upsert_section_bool(
-                content,
-                "ui",
-                "show_agent_labels_on_pane_borders",
-                enabled,
-            ),
-            Self::PaneBorderIds(enabled) => {
-                super::upsert_section_bool(content, "ui", "show_pane_ids_on_pane_borders", enabled)
             }
         }
     }
@@ -85,19 +72,4 @@ pub(crate) fn write_edit(edit: ConfigEdit<'_>) -> Result<(), String> {
     update_file_at(&super::config_path(), edit.description(), |content| {
         edit.apply(content)
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pane_label_edits_persist_independent_ui_keys() {
-        let content = ConfigEdit::AgentBorderLabels(true).apply("");
-        let content = ConfigEdit::PaneBorderIds(true).apply(&content);
-        let content = ConfigEdit::AgentBorderLabels(false).apply(&content);
-
-        assert!(content.contains("show_agent_labels_on_pane_borders = false"));
-        assert!(content.contains("show_pane_ids_on_pane_borders = true"));
-    }
 }
