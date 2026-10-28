@@ -81,6 +81,8 @@ pub(crate) struct ClientShellConfig {
     pub(super) agents: crate::config::AgentsSidebarConfig,
     pub(super) agent_panel_sort: crate::config::AgentPanelSortConfig,
     pub(super) status_indicators: crate::config::StatusIndicatorStyle,
+    pub(super) show_agent_labels_on_pane_borders: bool,
+    pub(super) show_pane_ids_on_pane_borders: bool,
     pub(super) sound_enabled: bool,
     pub(super) toast_delivery: crate::config::ToastDelivery,
     pub(super) toast_delay_seconds: u64,
@@ -442,6 +444,7 @@ pub(super) enum ClientSettingsSection {
     Indicators,
     Sound,
     Toast,
+    PaneLabels,
     Integrations,
 }
 
@@ -451,6 +454,7 @@ impl ClientSettingsSection {
         Self::Indicators,
         Self::Sound,
         Self::Toast,
+        Self::PaneLabels,
         Self::Integrations,
     ];
 
@@ -460,6 +464,7 @@ impl ClientSettingsSection {
             Self::Indicators => "indicators",
             Self::Sound => "sound",
             Self::Toast => "toasts",
+            Self::PaneLabels => "pane labels",
             Self::Integrations => "integrations",
         }
     }

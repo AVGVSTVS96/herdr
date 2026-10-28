@@ -1,5 +1,7 @@
 # herdr
 
+> A personal fork of [herdr](https://github.com/herdrdev/herdr) that updates itself with [autofork](https://autofork.com). Its changes, each described in plain words, are in [`.autofork/`](.autofork).
+
 
 <p align="center">
   <img src="assets/logo.png" alt="herdr" width="100" />

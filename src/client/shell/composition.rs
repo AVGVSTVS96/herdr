@@ -611,6 +611,8 @@ impl ClientShellState {
                     &self.endpoints,
                     &self.active_endpoint_id,
                     &self.config.keybinds,
+                    self.config.show_agent_labels_on_pane_borders,
+                    self.config.show_pane_ids_on_pane_borders,
                     &self.config.palette,
                 )?;
                 self.hits.overlay_primary = rendered.primary;

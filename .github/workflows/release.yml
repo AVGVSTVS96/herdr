@@ -1,0 +1,209 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Upstream release tag to build this fork's branch as. autofork.yml passes the tag each sync moved to.
+        required: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Resolve release version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      zig: ${{ steps.meta.outputs.zig }}
+      ref: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - id: meta
+        name: Check the tag against Cargo.toml
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          if [ "$TAG" != "v$version" ]; then
+            echo "$TAG doesn't match Cargo.toml's version $version." >&2
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            sed -n 's/.*minimum_zig_version = "\(.*\)".*/zig=\1/p' vendor/libghostty-vt/build.zig.zon
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            name: herdr-linux-x86_64
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            name: herdr-linux-aarch64
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            name: herdr-macos-x86_64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            name: herdr-macos-aarch64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      LIBGHOSTTY_VT_OPTIMIZE: ReleaseFast
+      LIBGHOSTTY_VT_SIMD: "true"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
+          persist-credentials: false
+
+      - name: Add the Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - uses: vercel-labs/setup-zig@83c1594f26b86da8a9a8ddd9b5ee5f3af0f96943 # v1.0.2
+        with:
+          version: ${{ needs.preflight.outputs.zig }}
+
+      - name: Install Linux build tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo find /etc/apt/sources.list.d -type f \( -iname '*microsoft*' -o -iname '*azure-cli*' \) -print -delete
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build musl-tools gcc-aarch64-linux-gnu crossbuild-essential-arm64
+
+      - name: Install macOS build tools
+        if: runner.os == 'macOS'
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake ninja
+
+      - name: Set Linux aarch64 linker
+        if: matrix.target == 'aarch64-unknown-linux-musl'
+        run: echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+
+      - uses: Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Build
+        run: |
+          cargo build --release --locked --target ${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/herdr ${{ matrix.name }}
+
+      - name: Check the Linux binary is static
+        if: runner.os == 'Linux'
+        run: |
+          ldd ${{ matrix.name }} > ldd.txt 2>&1 || true
+          grep -Eq "statically linked|not a dynamic executable" ldd.txt
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}
+
+  release:
+    name: Publish GitHub Release
+    needs: [preflight, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: assets
+          merge-multiple: true
+
+      # herdr's updater reads latest.json from the fork's latest release, in herdr.dev's format.
+      # Earlier versions carry over so a remote session can still find a binary matching its client.
+      - name: Write release notes and the update manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+          REF: ${{ needs.preflight.outputs.ref }}
+        run: |
+          set -euo pipefail
+          {
+            gh release view "$TAG" --repo herdrdev/herdr --json body --jq .body
+            echo
+            echo "Built from $GITHUB_REPOSITORY@$REF: herdr $TAG plus this fork's changes in [\`.autofork/\`](https://github.com/$GITHUB_REPOSITORY/tree/$REF/.autofork)."
+          } > release-notes.md
+          curl -fsSL "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/latest.json" -o previous.json || echo '{}' > previous.json
+          protocol="$(sed -n 's/.*pub const PROTOCOL_VERSION: u32 = \([0-9]*\);.*/\1/p' src/protocol/wire.rs)"
+          generation="$(sed -n 's/.*pub const ENDPOINT_PROTOCOL_GENERATION: u32 = \([0-9]*\);.*/\1/p' src/protocol/endpoint.rs)"
+          release="$(
+            for name in herdr-linux-x86_64 herdr-linux-aarch64 herdr-macos-x86_64 herdr-macos-aarch64; do
+              jq -n --arg key "${name#herdr-}" --arg sha "$(sha256sum "assets/$name" | cut -d' ' -f1)" \
+                --arg url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$name" \
+                '{assets: {($key): $url}, sha256: {($key): $sha}}'
+            done | jq -s --rawfile notes release-notes.md --argjson protocol "$protocol" --argjson generation "${generation:-null}" \
+              'reduce .[] as $a ({}; .assets += $a.assets | .sha256 += $a.sha256)
+                | {notes: $notes, protocol: $protocol, endpoint_generation: $generation} + .'
+          )"
+          jq --arg version "$VERSION" --argjson release "$release" \
+            '{version: $version} + $release + {releases: ((.releases // {}) + {($version): $release})}' \
+            previous.json > assets/latest.json
+
+      # The tag can already exist from an earlier release of this version, so point it at this build.
+      - name: Tag the build
+        env:
+          TAG: ${{ inputs.tag }}
+          REF: ${{ needs.preflight.outputs.ref }}
+        run: git push --force origin "$REF:refs/tags/$TAG"
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.tag }}
+          target_commitish: ${{ needs.preflight.outputs.ref }}
+          name: herdr ${{ needs.preflight.outputs.version }}
+          body_path: release-notes.md
+          make_latest: true
+          files: assets/*
+          fail_on_unmatched_files: true
+
+  # GitHub tells only whoever started a run that it failed, and autofork.yml's dispatch is started by GitHub's bot.
+  report:
+    name: Report a failed release
+    needs: [release]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open an issue, or comment on the open one
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="Release failed"
+          issue="$(gh issue list -R "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number,title \
+            --jq "map(select(.title == \"$title\"))[0].number // empty")"
+          if [[ -n "$issue" ]]; then
+            gh issue comment "$issue" -R "$GITHUB_REPOSITORY" --body "Releasing $TAG failed too: $RUN"
+          else
+            gh issue create -R "$GITHUB_REPOSITORY" --title "$title" --body "Releasing $TAG failed: $RUN
+
+          Installs update again once a Release run passes. Fix what broke and run Release with this tag, or let the next sync's release do it, then close this issue."
+          fi

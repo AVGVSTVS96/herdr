@@ -1,0 +1,12 @@
+diff --git a/README.md b/README.md
+index 5fe58ac91a0364b5e20388114c30dd36d208b679..f262ff64cc925c397f81f992d367e6098311de8e 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,7 @@
+ # herdr
+ 
++> A personal fork of [herdr](https://github.com/herdrdev/herdr) that updates itself with [autofork](https://autofork.com). Its changes, each described in plain words, are in [`.autofork/`](.autofork).
++
+ 
+ <p align="center">
+   <img src="assets/logo.png" alt="herdr" width="100" />

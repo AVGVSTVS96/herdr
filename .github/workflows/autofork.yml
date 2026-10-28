@@ -1,0 +1,61 @@
+name: autofork
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".autofork/**"]
+
+permissions:
+  actions: write
+  contents: write
+  issues: write
+
+concurrency: autofork
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Rust comes from rust-toolchain.toml, which rustup installs on first use.
+      # Zig has no such file, so install the version upstream's latest release asks for.
+      - id: zig
+        name: Read the Zig version upstream's latest release needs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="$(gh api repos/herdrdev/herdr/releases/latest --jq .tag_name)"
+          gh api "repos/herdrdev/herdr/contents/vendor/libghostty-vt/build.zig.zon?ref=$tag" --jq .content |
+            base64 -d | sed -n 's/.*minimum_zig_version = "\(.*\)".*/version=\1/p' >> "$GITHUB_OUTPUT"
+      - uses: vercel-labs/setup-zig@83c1594f26b86da8a9a8ddd9b5ee5f3af0f96943 # v1.0.2
+        with:
+          version: ${{ steps.zig.outputs.version }}
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: just,cargo-nextest
+
+      - id: autofork
+        uses: AVGVSTVS96/autofork@v1
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+      # Pushes made with GITHUB_TOKEN start no workflows, but dispatches do.
+      - name: Release the synced build
+        if: steps.autofork.outputs.result == 'synced' && steps.autofork.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.autofork.outputs.tag }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" -f tag="$TAG"
+
+      - name: Capture Claude accounting
+        if: always()
+        uses: AVGVSTVS96/autofork/.github/actions/usage@bf88ce65d7096d600ebe31ea4e607260ba1b9826

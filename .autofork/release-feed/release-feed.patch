@@ -1,0 +1,34 @@
+diff --git a/src/remote/attach.rs b/src/remote/attach.rs
+index 2aee5efe2d37a4421b391712e360e91646f5c9c9..1addf9e6e95b2a3fc585e841a548bce52ea3eb8d 100644
+--- a/src/remote/attach.rs
++++ b/src/remote/attach.rs
+@@ -30,8 +30,10 @@ const NONINTERACTIVE_SSH_STDERR_LIMIT: usize = 16 * 1024;
+ const BRIDGE_FAILURE_REPORT_TIMEOUT: Duration = Duration::from_secs(1);
+ const REMOTE_SERVER_SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
+ const CURRENT_PROTOCOL: u32 = crate::protocol::PROTOCOL_VERSION;
+-const STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
+-const PREVIEW_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/preview.json";
++const STABLE_UPDATE_MANIFEST_URL: &str =
++    "https://github.com/AVGVSTVS96/herdr/releases/latest/download/latest.json";
++const PREVIEW_UPDATE_MANIFEST_URL: &str =
++    "https://github.com/AVGVSTVS96/herdr/releases/latest/download/preview.json";
+ const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
+ const REMOTE_OUTPUT_READY_MARKER: &str = "herdr-remote-output-ready:1";
+ const SSH_CONTROL_SOCKET_NAME: &str = "ctl";
+diff --git a/src/update.rs b/src/update.rs
+index f836fb80b30d693f3cfc7519e460b81ebdce8cd1..3bced37225782e0d6daaa2eb7958bac0d37c85ca 100644
+--- a/src/update.rs
++++ b/src/update.rs
+@@ -22,8 +22,10 @@ use std::time::{Duration, Instant};
+ use interprocess::local_socket::traits::Stream as _;
+ use serde::{Deserialize, Deserializer};
+ 
+-const STABLE_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
+-const PREVIEW_UPDATE_MANIFEST_URL: &str = "https://herdr.dev/preview.json";
++const STABLE_UPDATE_MANIFEST_URL: &str =
++    "https://github.com/AVGVSTVS96/herdr/releases/latest/download/latest.json";
++const PREVIEW_UPDATE_MANIFEST_URL: &str =
++    "https://github.com/AVGVSTVS96/herdr/releases/latest/download/preview.json";
+ const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/herdr.json";
+ const HERDR_UPDATE_COMMAND: &str = "herdr update";
+ const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade herdr";
