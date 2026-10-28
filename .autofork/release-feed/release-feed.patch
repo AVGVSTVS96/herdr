@@ -1,5 +1,5 @@
 diff --git a/src/remote/attach.rs b/src/remote/attach.rs
-index 2aee5efe2d37a4421b391712e360e91646f5c9c9..1addf9e6e95b2a3fc585e841a548bce52ea3eb8d 100644
+index 5d2dc3b6e883b9ab68c74fd773ca27d231344c76..09ce93d39a7b0668942c0aa91c043972d7f9c49b 100644
 --- a/src/remote/attach.rs
 +++ b/src/remote/attach.rs
 @@ -30,8 +30,10 @@ const NONINTERACTIVE_SSH_STDERR_LIMIT: usize = 16 * 1024;
@@ -14,9 +14,9 @@ index 2aee5efe2d37a4421b391712e360e91646f5c9c9..1addf9e6e95b2a3fc585e841a548bce5
 +    "https://github.com/AVGVSTVS96/herdr/releases/latest/download/preview.json";
  const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
  const REMOTE_OUTPUT_READY_MARKER: &str = "herdr-remote-output-ready:1";
- const SSH_CONTROL_SOCKET_NAME: &str = "ctl";
+ const WINDOWS_REMOTE_PATH_MARKER: &str = "herdr-remote-path:1:";
 diff --git a/src/update.rs b/src/update.rs
-index f836fb80b30d693f3cfc7519e460b81ebdce8cd1..3bced37225782e0d6daaa2eb7958bac0d37c85ca 100644
+index 854bacdcee8d58a111360453fe520ac9e8671c59..39367407b8621d48996d426b11884f2237bdb060 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -22,8 +22,10 @@ use std::time::{Duration, Instant};
