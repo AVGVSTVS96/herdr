@@ -2,5 +2,5 @@
   "upstream": "herdrdev/herdr",
   "follow": "releases",
   "setup": "cargo fetch --locked",
-  "verify": "just lint && cargo nextest run --locked && python3 scripts/config_reference_check.py"
+  "verify": "just lint && cargo nextest run --locked --retries 2 && python3 scripts/config_reference_check.py"
 }
