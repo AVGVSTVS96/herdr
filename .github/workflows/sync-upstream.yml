@@ -202,6 +202,12 @@ jobs:
         with:
           version: 0.16.0
 
+      - name: Restore Rust cache
+        if: steps.resolve.outputs.needs_sync == 'true'
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          key: verify
+
       - name: Heal patches with Codex only after git apply fails
         if: steps.apply.outputs.apply_failed == 'true'
         shell: bash
@@ -303,10 +309,13 @@ jobs:
           cp justfile "$RUNNER_TEMP/justfile"
           trap 'cp "$RUNNER_TEMP/justfile" justfile' EXIT
           grep -vF 'bun test scripts/release-workflows.test.ts' "$RUNNER_TEMP/justfile" > justfile
-          if ! just check; then
-            echo "just check failed once; retrying to rule out known timing-sensitive tests" >&2
-            just check
+          # Upstream's Linux CI runs `just ci`; `just check` adds a Windows
+          # cross-lint that needs a Windows SDK, which upstream runs on Windows.
+          if ! just ci; then
+            echo "just ci failed once; retrying to rule out known timing-sensitive tests" >&2
+            just ci
           fi
+          just docs-contract-test
           python3 -m unittest scripts.test_fork_sync
 
       - name: Refresh deterministic patch artifacts
