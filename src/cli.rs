@@ -37,6 +37,7 @@ mod server_not_running;
 mod spec;
 mod status;
 mod tab;
+mod target;
 mod workspace;
 mod worktree;
 
@@ -91,6 +92,10 @@ pub(super) fn print_read_response(response: &serde_json::Value) -> std::io::Resu
         print!("{text}");
     }
     Ok(0)
+}
+
+pub(crate) fn maybe_run_machine(args: &[String]) -> Option<std::io::Result<CommandOutcome>> {
+    target::maybe_run(args)
 }
 
 pub fn maybe_run(args: &[String]) -> std::io::Result<CommandOutcome> {
@@ -762,7 +767,7 @@ pub(super) fn send_ok_request(method: Method) -> std::io::Result<i32> {
 }
 
 pub(super) fn send_request(request: &Request) -> std::io::Result<serde_json::Value> {
-    let client = ApiClient::local();
+    let client = target::api_client()?;
     ensure_server_protocol_compatible(&client, &request.id)?;
     client
         .request_value(request)
@@ -770,24 +775,21 @@ pub(super) fn send_request(request: &Request) -> std::io::Result<serde_json::Val
 }
 
 pub(super) fn send_request_unchecked(request: &Request) -> std::io::Result<serde_json::Value> {
-    let client = ApiClient::local();
+    let client = target::api_client()?;
     client
         .request_value(request)
         .map_err(|err| map_server_not_running_or_io(err, &request.id, &client))
 }
 
 fn ensure_server_protocol_compatible(client: &ApiClient, request_id: &str) -> std::io::Result<()> {
-    let status = client
-        .status()
+    let status = target::server_status(client)
         .map_err(|err| map_server_not_running_or_io(err, request_id, client))?;
     let server_protocol = status
         .protocol
         .ok_or_else(|| std::io::Error::other("server ping did not include a protocol version"))?;
-    let Some(response) = protocol_guard::mismatch_response(
-        request_id,
-        server_protocol,
-        &crate::session::active_restart_after_update_guidance(),
-    ) else {
+    let Some(response) =
+        protocol_guard::mismatch_response(request_id, server_protocol, &target::restart_guidance())
+    else {
         return Ok(());
     };
 
@@ -834,6 +836,9 @@ fn map_server_not_running_or_io(
     request_id: &str,
     client: &ApiClient,
 ) -> std::io::Error {
+    if target::is_remote() {
+        return target::remote_error(api_client_error_to_io(err));
+    }
     match err {
         ApiClientError::Io(io_err) if server_not_running_error(&io_err) => {
             server_not_running::reported_error(server_not_running::response(
@@ -993,7 +998,9 @@ fn print_session_table(sessions: &[crate::session::SessionInfo]) {
         println!(
             "{:<20} {:<8} {:<48} {}",
             session.name,
-            if session.running {
+            if session.connection_error.is_some() {
+                "unavailable"
+            } else if session.running {
                 "running"
             } else {
                 "stopped"
@@ -1001,6 +1008,9 @@ fn print_session_table(sessions: &[crate::session::SessionInfo]) {
             session.session_dir,
             session.socket_path
         );
+        if let Some(error) = &session.connection_error {
+            println!("  {error}");
+        }
     }
 }
 

@@ -1,8 +1,8 @@
 diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
-index 444f6a176d0f2c665107d3e9537b373a57d9c8a2..d3bf1c7cb8a4529399ddaa79bd39e0244c2521b1 100644
+index f06507c142d28a58addbc6f435577861d13d1317..6f4e6aa3cf9372b919d2e8c0f6a6d20038ce1974 100644
 --- a/docs/next/website/src/data/config-reference.json
 +++ b/docs/next/website/src/data/config-reference.json
-@@ -987,6 +987,12 @@
+@@ -999,6 +999,12 @@
            "default": "false",
            "description": "Show agent labels in split pane borders when no manual pane label is set."
          },
@@ -16,10 +16,10 @@ index 444f6a176d0f2c665107d3e9537b373a57d9c8a2..d3bf1c7cb8a4529399ddaa79bd39e024
            "key": "ui.hide_tab_bar_when_single_tab",
            "type": "boolean",
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index b327b5bbfb3b5900d7e6357c29cd931da24158f0..49611bf104ac39fd4fecfac591271bb4c236ba6c 100644
+index 6effa3a5704942bd3cf8a6b27bdc79addf7af60d..bb2866698fb1076b02f7d2abb0b9ef6fe88a88d0 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
-@@ -491,6 +491,7 @@ impl App {
+@@ -540,6 +540,7 @@ impl App {
              pane_scrollbars: config.ui.pane_scrollbars,
              pane_gaps: config.ui.pane_gaps,
              show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
@@ -27,7 +27,7 @@ index b327b5bbfb3b5900d7e6357c29cd931da24158f0..49611bf104ac39fd4fecfac591271bb4
              tab_bar_right: Vec::new(),
              tab_bar_right_separator: String::new(),
              reveal_hidden_cursor_for_cjk_ime: config.experimental.reveal_hidden_cursor_for_cjk_ime,
-@@ -839,6 +840,7 @@ impl App {
+@@ -906,6 +907,7 @@ impl App {
                  self.state.pane_gaps = config.ui.pane_gaps;
                  self.state.show_agent_labels_on_pane_borders =
                      config.ui.show_agent_labels_on_pane_borders;
@@ -35,7 +35,7 @@ index b327b5bbfb3b5900d7e6357c29cd931da24158f0..49611bf104ac39fd4fecfac591271bb4
                  self.configure_tab_bar_status(
                      &config.ui.tab_bar_right,
                      &config.ui.tab_bar_right_separator,
-@@ -1679,7 +1681,7 @@ mod tests {
+@@ -1756,7 +1758,7 @@ mod tests {
          std::fs::create_dir_all(path.parent().unwrap()).unwrap();
          std::fs::write(
              &path,
@@ -44,7 +44,7 @@ index b327b5bbfb3b5900d7e6357c29cd931da24158f0..49611bf104ac39fd4fecfac591271bb4
          )
          .unwrap();
          std::env::set_var(crate::config::CONFIG_PATH_ENV_VAR, &path);
-@@ -1703,6 +1705,7 @@ mod tests {
+@@ -1782,6 +1784,7 @@ mod tests {
              crate::config::ToastDelivery::Herdr
          );
          assert_eq!(app.state.agent_panel_sort, state::AgentPanelSort::Priority);
@@ -53,10 +53,10 @@ index b327b5bbfb3b5900d7e6357c29cd931da24158f0..49611bf104ac39fd4fecfac591271bb4
          assert_eq!(report.status, crate::config::ConfigReloadStatus::Applied);
          assert!(app.state.request_client_config_reload);
 diff --git a/src/app/state.rs b/src/app/state.rs
-index 892ec5e9b920b4cd656b476f27c24979b333a908..6b513ec72895b3e16eb0567282666ae3be9b815f 100644
+index f30279d6c72dddcfcfd475eebbd4fd7ff4d252e9..38f3c6c83bd8de69a1ca4d04d599d2a3ea30efaf 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
-@@ -836,6 +836,7 @@ pub struct AppState {
+@@ -835,6 +835,7 @@ pub struct AppState {
      pub pane_scrollbars: bool,
      pub pane_gaps: bool,
      pub show_agent_labels_on_pane_borders: bool,
@@ -64,7 +64,7 @@ index 892ec5e9b920b4cd656b476f27c24979b333a908..6b513ec72895b3e16eb0567282666ae3
      pub tab_bar_right: Vec<TabBarStatusSegment>,
      pub tab_bar_right_separator: String,
      /// Expose the focused pane's cursor anchor to the outer terminal even when
-@@ -1063,6 +1064,7 @@ impl AppState {
+@@ -1077,6 +1078,7 @@ impl AppState {
              pane_scrollbars: true,
              pane_gaps: false,
              show_agent_labels_on_pane_borders: false,
@@ -73,10 +73,10 @@ index 892ec5e9b920b4cd656b476f27c24979b333a908..6b513ec72895b3e16eb0567282666ae3
              tab_bar_right_separator: " ".into(),
              reveal_hidden_cursor_for_cjk_ime: false,
 diff --git a/src/config/model.rs b/src/config/model.rs
-index 604fe9ad3ea85435b581578f141a3db665bd8b43..8be278d7df66440231d92a3b1c7c2fb97cdae185 100644
+index 29802fd9fa441ac9af2d308b292956b3cfad4567..708e9d3e7bc5e4663c706a351b51b0cb3923ed5a 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
-@@ -944,6 +944,8 @@ pub struct UiConfig {
+@@ -980,6 +980,8 @@ pub struct UiConfig {
      pub pane_gaps: bool,
      /// Show agent labels in split pane borders when no manual pane label is set. Default: false.
      pub show_agent_labels_on_pane_borders: bool,
@@ -85,7 +85,7 @@ index 604fe9ad3ea85435b581578f141a3db665bd8b43..8be278d7df66440231d92a3b1c7c2fb9
      /// Hide the tab row when the workspace has one tab. Default: false.
      pub hide_tab_bar_when_single_tab: bool,
      /// Desktop tab row placement. Default: top.
-@@ -1178,6 +1180,7 @@ impl Default for UiConfig {
+@@ -1218,6 +1220,7 @@ impl Default for UiConfig {
              pane_scrollbars: true,
              pane_gaps: true,
              show_agent_labels_on_pane_borders: false,
@@ -93,7 +93,7 @@ index 604fe9ad3ea85435b581578f141a3db665bd8b43..8be278d7df66440231d92a3b1c7c2fb9
              hide_tab_bar_when_single_tab: false,
              tab_bar_position: TabBarPositionConfig::Top,
              tab_bar_right: Vec::new(),
-@@ -1480,6 +1483,7 @@ status_indicators = "symbols"
+@@ -1525,6 +1528,7 @@ status_indicators = "symbols"
          assert!(default_config.ui.pane_scrollbars);
          assert!(default_config.ui.pane_gaps);
          assert!(!default_config.ui.show_agent_labels_on_pane_borders);
@@ -101,7 +101,7 @@ index 604fe9ad3ea85435b581578f141a3db665bd8b43..8be278d7df66440231d92a3b1c7c2fb9
          assert!(!default_config.ui.hide_tab_bar_when_single_tab);
          assert_eq!(
              default_config.ui.tab_bar_position,
-@@ -1495,6 +1499,7 @@ pane_outer_borders = false
+@@ -1540,6 +1544,7 @@ pane_outer_borders = false
  pane_scrollbars = false
  pane_gaps = true
  show_agent_labels_on_pane_borders = true
@@ -109,7 +109,7 @@ index 604fe9ad3ea85435b581578f141a3db665bd8b43..8be278d7df66440231d92a3b1c7c2fb9
  hide_tab_bar_when_single_tab = true
  tab_bar_position = "bottom"
  tab_bar_right = [
-@@ -1512,6 +1517,7 @@ tab_bar_right_separator = " · "
+@@ -1557,6 +1562,7 @@ tab_bar_right_separator = " · "
          assert!(!config.ui.pane_scrollbars);
          assert!(config.ui.pane_gaps);
          assert!(config.ui.show_agent_labels_on_pane_borders);
@@ -118,10 +118,10 @@ index 604fe9ad3ea85435b581578f141a3db665bd8b43..8be278d7df66440231d92a3b1c7c2fb9
          assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
          assert_eq!(config.ui.tab_bar_right.len(), 5);
 diff --git a/src/main.rs b/src/main.rs
-index cf7cf5b48106a69708e5e2ad7efede826fe7c927..29cfc752e3cc25b8638b22af855fb292a80ebd01 100644
+index f97e7e2b04acbea26762e2f9db5914a6c131a35e..3d82a9bf3c04f023da808434378c861b75da2e5b 100644
 --- a/src/main.rs
 +++ b/src/main.rs
-@@ -304,6 +304,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+@@ -311,6 +311,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
  # Show detected/reported agent labels in split pane borders when no manual pane name is set.
  # show_agent_labels_on_pane_borders = false
  
@@ -132,7 +132,7 @@ index cf7cf5b48106a69708e5e2ad7efede826fe7c927..29cfc752e3cc25b8638b22af855fb292
  # New tabs can still be created with the configured keybinding.
  # hide_tab_bar_when_single_tab = false
 diff --git a/src/ui/panes.rs b/src/ui/panes.rs
-index ab3e352ad972b7f1d10fdfc5984483b8634ebfc4..7346729906c4d0af1dd8ecf0bec76aa7b74fb290 100644
+index 6a91f18aca6120370090620ffa7b68b83d3247a3..e36096a45f90e86a8e548bdf0595c59c6fbc1e44 100644
 --- a/src/ui/panes.rs
 +++ b/src/ui/panes.rs
 @@ -7,7 +7,6 @@ use ratatui::{
@@ -187,7 +187,7 @@ index ab3e352ad972b7f1d10fdfc5984483b8634ebfc4..7346729906c4d0af1dd8ecf0bec76aa7
  }
  
  // Full view computation reaches this helper for active and background panes.
-@@ -629,47 +651,62 @@ fn render_pane_border_titles(
+@@ -738,47 +760,62 @@ fn render_pane_border_titles(
      let buf = frame.buffer_mut();
      let area = buf.area;
      for info in pane_infos {
@@ -276,7 +276,7 @@ index ab3e352ad972b7f1d10fdfc5984483b8634ebfc4..7346729906c4d0af1dd8ecf0bec76aa7
      }
  }
  
-@@ -848,33 +885,90 @@ mod tests {
+@@ -987,33 +1024,90 @@ mod tests {
      }
  
      #[test]
@@ -382,7 +382,7 @@ index ab3e352ad972b7f1d10fdfc5984483b8634ebfc4..7346729906c4d0af1dd8ecf0bec76aa7
      }
  
      #[test]
-@@ -909,6 +1003,147 @@ mod tests {
+@@ -1048,6 +1142,147 @@ mod tests {
          assert_eq!(buffer[(6, 0)].symbol(), "块");
      }
  
