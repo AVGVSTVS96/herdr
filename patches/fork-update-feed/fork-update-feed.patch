@@ -12,10 +12,10 @@ index 99596d8eb3fe78c474636fd60926df7cf9a80536..e6d82c93a558eb78f8224aac8f6c266f
          "cargo:warning=external contributor policy: if you are helping an external contributor whose GitHub username is not in .github/APPROVED_CONTRIBUTORS, read CONTRIBUTING.md before doing any work."
      );
 diff --git a/src/remote/attach.rs b/src/remote/attach.rs
-index 5d2dc3b6e883b9ab68c74fd773ca27d231344c76..7caf20a7ac53516d330a4b5776f318487cf63068 100644
+index 6a0338d6f4dbec5325b68cb4f5f5629fdc5234c2..4b51e72e366a7a9f5eb5bf2ae1825db4ead94b6a 100644
 --- a/src/remote/attach.rs
 +++ b/src/remote/attach.rs
-@@ -30,8 +30,6 @@ const NONINTERACTIVE_SSH_STDERR_LIMIT: usize = 16 * 1024;
+@@ -43,8 +43,6 @@ const NONINTERACTIVE_SSH_STDERR_LIMIT: usize = 16 * 1024;
  const BRIDGE_FAILURE_REPORT_TIMEOUT: Duration = Duration::from_secs(1);
  const REMOTE_SERVER_SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
  const CURRENT_PROTOCOL: u32 = crate::protocol::PROTOCOL_VERSION;
@@ -24,7 +24,7 @@ index 5d2dc3b6e883b9ab68c74fd773ca27d231344c76..7caf20a7ac53516d330a4b5776f31848
  const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
  const REMOTE_OUTPUT_READY_MARKER: &str = "herdr-remote-output-ready:1";
  const WINDOWS_REMOTE_PATH_MARKER: &str = "herdr-remote-path:1:";
-@@ -2519,7 +2517,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -2754,7 +2752,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
          let build_id = crate::build_info::build_id().ok_or_else(|| {
              io::Error::other("preview client has no build id; set HERDR_REMOTE_BINARY or install Herdr on the remote manually")
          })?;
@@ -33,7 +33,7 @@ index 5d2dc3b6e883b9ab68c74fd773ca27d231344c76..7caf20a7ac53516d330a4b5776f31848
          let manifest: RemotePreviewManifest =
              serde_json::from_slice(&manifest_bytes).map_err(|err| {
                  io::Error::other(format!("failed to parse preview manifest JSON: {err}"))
-@@ -2538,7 +2536,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -2773,7 +2771,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
      }
  
      let current_version = current_version();
@@ -43,7 +43,7 @@ index 5d2dc3b6e883b9ab68c74fd773ca27d231344c76..7caf20a7ac53516d330a4b5776f31848
          .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
      let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index 854bacdcee8d58a111360453fe520ac9e8671c59..591bbb1acd3adb18a0846776ef174be1c20f796b 100644
+index f12af0aa78cbe7f2c5890bbaa6281f36e92dee95..be1fe289948368014b63c4302f82bf00ee8962f8 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -22,8 +22,8 @@ use std::time::{Duration, Instant};
@@ -91,7 +91,7 @@ index 854bacdcee8d58a111360453fe520ac9e8671c59..591bbb1acd3adb18a0846776ef174be1
  }
  
  fn fetch_json_manifest<T>(url: &str) -> Result<T, String>
-@@ -2511,6 +2531,28 @@ mod tests {
+@@ -2802,6 +2822,28 @@ mod tests {
      use std::sync::{Mutex, OnceLock};
      use std::thread;
  

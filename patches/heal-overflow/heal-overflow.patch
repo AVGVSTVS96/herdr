@@ -388,7 +388,7 @@ index bddcde10c8a53adbccea133d7248b0e0e86cb9c4..974e5d4e64cea8b6bad1bb3214f3a518
 +    let _ = std::fs::remove_file(path);
 +}
 diff --git a/src/config/write.rs b/src/config/write.rs
-index f34ec2f655ebaca74d6aa1c968f260db1e23c623..f5de169105dfefdd07ea1904fa767f9a5264925f 100644
+index 97e81f073b104ad388d46f83a6a888301cf95451..1653e3f61baf16b38d8fcbc954d724cae4b552d7 100644
 --- a/src/config/write.rs
 +++ b/src/config/write.rs
 @@ -4,6 +4,8 @@ pub(crate) enum ConfigEdit<'a> {
