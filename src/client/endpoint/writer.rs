@@ -75,7 +75,6 @@ impl NativeEndpointTransport {
                         break;
                     }
                 }
-                drop(stream);
             })?;
         Ok(Self {
             sender,
@@ -260,7 +259,6 @@ mod tests {
     use super::*;
 
     fn streams() -> (LocalStream, LocalStream, std::path::PathBuf) {
-        #[cfg(unix)]
         use interprocess::local_socket::traits::Listener as _;
         let path = std::env::temp_dir().join(format!(
             "herdr-writer-{}-{}.sock",

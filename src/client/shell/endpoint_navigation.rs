@@ -57,12 +57,7 @@ impl ClientShellState {
         };
         let endpoint_id = hit.endpoint_id.clone();
         let collapse_toggle = super::contains(hit.collapse_toggle, point);
-        if collapse_toggle
-            || (endpoint_id == self.active_endpoint_id
-                && (endpoint_id.is_local()
-                    || self.endpoint_is_online(&endpoint_id)
-                    || self.endpoint_status(&endpoint_id) == Some(ClientEndpointStatus::Disabled)))
-        {
+        if collapse_toggle || endpoint_id == self.active_endpoint_id {
             if !self.collapsed_endpoints.remove(&endpoint_id) {
                 self.collapsed_endpoints.insert(endpoint_id.clone());
             }
@@ -76,7 +71,9 @@ impl ClientShellState {
                 target: None,
             });
         } else {
-            self.select_unready_machine(&endpoint_id, outcome);
+            let label = self.endpoint_label(&endpoint_id).to_owned();
+            self.receive_endpoint_unavailable(format!("{label} is not ready"));
+            outcome.repaint = true;
         }
         true
     }
@@ -228,19 +225,6 @@ impl ClientShellState {
         false
     }
 
-    /// Selecting a machine that is waiting to reconnect asks for an attempt now.
-    fn select_unready_machine(
-        &mut self,
-        endpoint_id: &ClientEndpointId,
-        outcome: &mut ClientShellInput,
-    ) {
-        if !self.retry_machine(endpoint_id) {
-            let label = self.endpoint_label(endpoint_id).to_owned();
-            self.receive_endpoint_unavailable(format!("{label} is not ready"));
-        }
-        outcome.repaint = true;
-    }
-
     pub(super) fn activate_endpoint(
         &mut self,
         endpoint_id: ClientEndpointId,
@@ -250,7 +234,9 @@ impl ClientShellState {
         self.pending_agent_reveal = None;
         let online = self.endpoint_is_online(&endpoint_id);
         if !online && !endpoint_id.is_local() {
-            self.select_unready_machine(&endpoint_id, outcome);
+            let label = self.endpoint_label(&endpoint_id).to_owned();
+            self.receive_endpoint_unavailable(format!("{label} is not ready"));
+            outcome.repaint = true;
             return false;
         }
         if (endpoint_id.is_local() && (self.multi_endpoint_active() || !online))
@@ -278,7 +264,9 @@ impl ClientShellState {
         self.pending_agent_reveal = None;
         let online = self.endpoint_is_online(&endpoint_id);
         if !online && !endpoint_id.is_local() {
-            self.select_unready_machine(&endpoint_id, outcome);
+            let label = self.endpoint_label(&endpoint_id).to_owned();
+            self.receive_endpoint_unavailable(format!("{label} is not ready"));
+            outcome.repaint = true;
             return false;
         }
         // Local can still be displayed while a remote activation is pending.

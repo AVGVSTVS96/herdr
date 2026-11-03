@@ -206,14 +206,17 @@ fn client_mouse_selection_highlights_and_copies_through_endpoint_extraction() {
             text: "LIV".into(),
         }),
     );
-    assert!(!repaint);
+    assert!(repaint);
     assert!(matches!(
         &actions[..],
         [ClientShellAction::ClipboardWrite(bytes)] if bytes == b"LIV"
     ));
-    assert!(
-        state.copy_feedback.is_none(),
-        "feedback must wait for clipboard dispatch"
+    assert_eq!(
+        state
+            .copy_feedback
+            .as_ref()
+            .map(|feedback| feedback.message.as_str()),
+        Some("copied to clipboard")
     );
 }
 

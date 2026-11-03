@@ -1,5 +1,4 @@
 use std::io::{self, BufRead, Write as _};
-use std::sync::atomic::AtomicBool;
 
 use base64::Engine;
 use interprocess::local_socket::traits::Stream as _;
@@ -105,7 +104,6 @@ fn connect_terminal_session_stream(
         false,
         true,
         true,
-        &AtomicBool::new(false),
     ) {
         Ok(handshake) if handshake.encoding == RenderEncoding::TerminalAnsi => {}
         Ok(handshake) => {

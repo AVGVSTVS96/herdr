@@ -12,10 +12,10 @@ index 18bbfaa3dccf3c8bd50f3bf897a8630179eb1248..5b59d477436ff297733add02a782dfe3
  
  main() {
 diff --git a/src/remote/attach.rs b/src/remote/attach.rs
-index 6a0338d6f4dbec5325b68cb4f5f5629fdc5234c2..579952b9de6b67654693f97fa0a45345d997d69c 100644
+index 5d2dc3b6e883b9ab68c74fd773ca27d231344c76..17272774a0f1b8db70f28b84d9ed9cf7f27c8d5e 100644
 --- a/src/remote/attach.rs
 +++ b/src/remote/attach.rs
-@@ -43,8 +43,6 @@ const NONINTERACTIVE_SSH_STDERR_LIMIT: usize = 16 * 1024;
+@@ -30,8 +30,6 @@ const NONINTERACTIVE_SSH_STDERR_LIMIT: usize = 16 * 1024;
  const BRIDGE_FAILURE_REPORT_TIMEOUT: Duration = Duration::from_secs(1);
  const REMOTE_SERVER_SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
  const CURRENT_PROTOCOL: u32 = crate::protocol::PROTOCOL_VERSION;
@@ -24,7 +24,7 @@ index 6a0338d6f4dbec5325b68cb4f5f5629fdc5234c2..579952b9de6b67654693f97fa0a45345
  const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
  const REMOTE_OUTPUT_READY_MARKER: &str = "herdr-remote-output-ready:1";
  const WINDOWS_REMOTE_PATH_MARKER: &str = "herdr-remote-path:1:";
-@@ -2754,7 +2752,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -2519,7 +2517,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
          let build_id = crate::build_info::build_id().ok_or_else(|| {
              io::Error::other("preview client has no build id; set HERDR_REMOTE_BINARY or install Herdr on the remote manually")
          })?;
@@ -33,7 +33,7 @@ index 6a0338d6f4dbec5325b68cb4f5f5629fdc5234c2..579952b9de6b67654693f97fa0a45345
          let manifest: RemotePreviewManifest =
              serde_json::from_slice(&manifest_bytes).map_err(|err| {
                  io::Error::other(format!("failed to parse preview manifest JSON: {err}"))
-@@ -2773,7 +2771,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
+@@ -2538,7 +2536,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
      }
  
      let current_version = current_version();
@@ -43,7 +43,7 @@ index 6a0338d6f4dbec5325b68cb4f5f5629fdc5234c2..579952b9de6b67654693f97fa0a45345
          .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
      let release = manifest.release_for_version(&current_version).ok_or_else(|| {
 diff --git a/src/update.rs b/src/update.rs
-index f12af0aa78cbe7f2c5890bbaa6281f36e92dee95..b01d9835ffb8169cc08552bf951190c09f563619 100644
+index 854bacdcee8d58a111360453fe520ac9e8671c59..50f2d49b18901af7d553438aef8b0595a3fd2860 100644
 --- a/src/update.rs
 +++ b/src/update.rs
 @@ -22,8 +22,10 @@ use std::time::{Duration, Instant};

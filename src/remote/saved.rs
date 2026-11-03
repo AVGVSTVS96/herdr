@@ -1,10 +1,5 @@
 use std::io;
 use std::path::PathBuf;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
-use std::time::{Duration, Instant};
 
 use super::attach::{find_installed_remote_herdr, RemoteSsh, SshStdioBridge};
 
@@ -21,16 +16,10 @@ pub(crate) fn connect_saved_ssh(
     profile_id: &str,
     target: &str,
     session: &str,
-    cancelled: Arc<AtomicBool>,
 ) -> io::Result<SavedSshStream> {
-    let mut ssh = validated_saved_ssh(profile_id, target, session)?;
-    ssh.cancelled = Arc::clone(&cancelled);
-    ssh.prepare_shared_transport()?;
+    let ssh = validated_saved_ssh(profile_id, target, session)?;
     let remote_herdr = find_installed_remote_herdr(&ssh)?;
     let metadata = remote_herdr.machine_metadata();
-    if cancelled.load(Ordering::Acquire) {
-        return Err(super::process::cancelled());
-    }
     let path = saved_bridge_path(profile_id);
     let bridge = SshStdioBridge::start(
         target.to_owned(),
@@ -39,13 +28,8 @@ pub(crate) fn connect_saved_ssh(
         session.to_owned(),
         ssh.options(),
         true,
-        Arc::clone(&cancelled),
     )?;
-    let stream = crate::ipc::connect_local_stream_cancellable(
-        &path,
-        &cancelled,
-        Instant::now() + Duration::from_secs(5),
-    )?;
+    let stream = crate::ipc::connect_local_stream(&path)?;
     if let Some(metadata) = metadata {
         crate::client::endpoint::SshMetadataCache::new(profile_id, target, session)?
             .store(&metadata);
@@ -60,8 +44,6 @@ pub(crate) struct SavedSshApiBridge {
     path: PathBuf,
     bridge: SshStdioBridge,
     metadata_cache: crate::client::endpoint::SshMetadataCache,
-    ssh: RemoteSsh,
-    pub(crate) can_retry: bool,
     pub(crate) used_cached_metadata: bool,
 }
 
@@ -71,10 +53,8 @@ impl SavedSshApiBridge {
         target: &str,
         session: &str,
         use_cached_metadata: bool,
-        allow_retry: bool,
     ) -> io::Result<Self> {
         let ssh = validated_saved_ssh(profile_id, target, session)?;
-        let mut can_retry = allow_retry;
         let metadata_cache =
             crate::client::endpoint::SshMetadataCache::new(profile_id, target, session)?;
         let cached = use_cached_metadata.then(|| metadata_cache.load()).flatten();
@@ -82,14 +62,7 @@ impl SavedSshApiBridge {
         let metadata = match cached {
             Some(metadata) => metadata,
             None => {
-                let discover = || super::attach::discover_remote_api_metadata(&ssh, session);
-                let metadata = match discover() {
-                    Err(_) if can_retry && ssh.prepare_shared_transport().unwrap_or(false) => {
-                        can_retry = false;
-                        discover()?
-                    }
-                    result => result?,
-                };
+                let metadata = super::attach::discover_remote_api_metadata(&ssh, session)?;
                 metadata_cache.store(&metadata);
                 metadata
             }
@@ -109,14 +82,11 @@ impl SavedSshApiBridge {
             path.clone(),
             ssh.options(),
             true,
-            Arc::new(AtomicBool::new(false)),
         )?;
         Ok(Self {
             path,
             bridge,
             metadata_cache,
-            ssh,
-            can_retry,
             used_cached_metadata,
         })
     }
@@ -131,10 +101,6 @@ impl SavedSshApiBridge {
 
     pub(crate) fn invalidate_metadata(&self) {
         self.metadata_cache.invalidate();
-    }
-
-    pub(crate) fn recover_transport(&self) -> bool {
-        self.can_retry && self.ssh.prepare_shared_transport().unwrap_or(false)
     }
 
     pub(crate) fn stale_metadata_failure(error: &io::Error) -> bool {
