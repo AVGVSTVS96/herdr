@@ -1,19 +1,16 @@
 > [!NOTE]
-> **This is an auto-patched fork of [herdr](https://github.com/herdrdev/herdr).**
-> A nightly pipeline rebases the [PATCH.md packages](patches/) in `patches/` onto the
-> latest upstream, heals conflicts with a coding agent, runs upstream's full checks,
-> and publishes patched builds for macOS and Linux (x86_64 and arm64).
+> **A personal fork of [herdr](https://github.com/herdrdev/herdr) that updates itself with [autofork](https://autofork.com).**
+> On each herdr release, its changes, each described in plain words in [`.autofork/`](.autofork),
+> go back on top, and it publishes its own builds for macOS and Linux (x86_64 and arm64).
 >
-> Install the patched build:
+> Install this fork's build:
 >
 > ```sh
-> curl -fsSL https://raw.githubusercontent.com/AVGVSTVS96/herdr/main/install-fork.sh | sh
+> curl -fsSL https://raw.githubusercontent.com/AVGVSTVS96/herdr/main/distribution/install.sh | sh
 > ```
 >
-> The installer verifies each download against the fork's sha256 manifest, installs
-> to `~/.local/bin`, and points `herdr update` at this fork's release feed. Stay
-> current with `herdr update --handoff`, or opt into patched nightlies with
-> `herdr channel set preview && herdr update --handoff`.
+> The installer checks the download against this fork's sha256 manifest, and `herdr update --handoff`
+> keeps it current from this fork's releases.
 >
 > Everything below is the upstream README, unchanged.
 

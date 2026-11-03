@@ -1,0 +1,24 @@
+diff --git a/README.md b/README.md
+index 55ea278919613ffcd4840c42f343c5fd2ed1aa02..e400491318ff923d7ef04777113cd38e6b1ea38c 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,19 @@
++> [!NOTE]
++> **A personal fork of [herdr](https://github.com/herdrdev/herdr) that updates itself with [autofork](https://autofork.com).**
++> On each herdr release, its changes, each described in plain words in [`.autofork/`](.autofork),
++> go back on top, and it publishes its own builds for macOS and Linux (x86_64 and arm64).
++>
++> Install this fork's build:
++>
++> ```sh
++> curl -fsSL https://raw.githubusercontent.com/AVGVSTVS96/herdr/main/distribution/install.sh | sh
++> ```
++>
++> The installer checks the download against this fork's sha256 manifest, and `herdr update --handoff`
++> keeps it current from this fork's releases.
++>
++> Everything below is the upstream README, unchanged.
++
+ # herdr
+ 
+ 

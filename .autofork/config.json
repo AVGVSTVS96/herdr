@@ -1,0 +1,11 @@
+{
+  "upstream": "herdrdev/herdr",
+  "follow": "releases",
+  "setup": "cargo fetch --locked",
+  "verify": "just lint && cargo nextest run --locked --retries 2 --status-level fail --final-status-level slow --failure-output final --success-output never && just ui-hot-path-architecture-test integration-assets-test docs-contract-test && python3 scripts/config_reference_check.py",
+  "limits": {
+    "rebuilds": 10,
+    "month": 200,
+    "rebuild": 20
+  }
+}

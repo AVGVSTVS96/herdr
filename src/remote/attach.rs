@@ -2752,7 +2752,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
         let build_id = crate::build_info::build_id().ok_or_else(|| {
             io::Error::other("preview client has no build id; set HERDR_REMOTE_BINARY or install Herdr on the remote manually")
         })?;
-        let manifest_bytes = fetch_remote_manifest(crate::update::preview_update_manifest_url())?;
+        let manifest_bytes = fetch_remote_manifest(crate::update::PREVIEW_UPDATE_MANIFEST_URL)?;
         let manifest: RemotePreviewManifest =
             serde_json::from_slice(&manifest_bytes).map_err(|err| {
                 io::Error::other(format!("failed to parse preview manifest JSON: {err}"))
@@ -2771,7 +2771,7 @@ fn remote_release_asset(asset_key: &str) -> io::Result<RemoteReleaseAsset> {
     }
 
     let current_version = current_version();
-    let manifest_bytes = fetch_remote_manifest(crate::update::stable_update_manifest_url())?;
+    let manifest_bytes = fetch_remote_manifest(crate::update::STABLE_UPDATE_MANIFEST_URL)?;
     let manifest: RemoteUpdateManifest = serde_json::from_slice(&manifest_bytes)
         .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
     let release = manifest.release_for_version(&current_version).ok_or_else(|| {
